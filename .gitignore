@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Builds and caches
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Local databases and runtime state
+*.db
+*.sqlite
+*.sqlite3
+*.log
+preview-url.txt
+preview-watch.log
+.tools/
+.edge-shot-profile*/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Generated screenshots/log captures
+screenshots/*.png
+screenshots/*.jpg
+screenshots/*.jpeg
+screenshots/*.webp

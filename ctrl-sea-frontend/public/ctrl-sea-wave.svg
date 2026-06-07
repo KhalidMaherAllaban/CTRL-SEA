@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop stop-color="#082D56"/>
+      <stop offset=".72" stop-color="#03152D"/>
+      <stop offset="1" stop-color="#010814"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="111" y1="122" x2="408" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE5A5"/>
+      <stop offset=".52" stop-color="#D6A85F"/>
+      <stop offset="1" stop-color="#8B6128"/>
+    </linearGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feFlood flood-color="#D6A85F" flood-opacity=".38"/>
+      <feComposite in2="blur" operator="in"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="20" y="20" width="472" height="472" rx="96" stroke="#D6A85F" stroke-opacity=".55" stroke-width="10"/>
+  <g filter="url(#glow)">
+    <path d="M103 237C177 216 190 145 269 112C324 89 382 102 408 154C373 139 342 156 316 191C279 243 219 270 103 237Z" fill="url(#gold)"/>
+    <path d="M86 288C161 260 219 261 273 277C321 292 367 288 446 248C389 302 333 318 265 302C201 287 148 289 86 319V288Z" fill="url(#gold)"/>
+    <path d="M101 351C166 323 224 322 285 336C341 349 388 341 443 309C393 365 334 384 266 366C207 351 156 354 101 381V351Z" fill="url(#gold)" opacity=".92"/>
+  </g>
+</svg>

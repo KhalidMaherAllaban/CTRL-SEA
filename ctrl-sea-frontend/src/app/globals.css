@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: #e2e8f0;
+  font-family: Inter, "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(48, 213, 255, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 12%, rgba(214, 168, 95, 0.1), transparent 24%),
+    linear-gradient(135deg, #03152D 0%, #020617 58%, #082D56 120%);
+}
+
+.glass {
+  border: 1px solid rgba(48, 213, 255, 0.16);
+  background: linear-gradient(135deg, rgba(3, 21, 45, 0.82), rgba(8, 45, 86, 0.34));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 70px rgba(0,0,0,0.45);
+  backdrop-filter: blur(20px);
+}
+
+.maritime-grid {
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(to bottom, black, transparent);
+}
+
+.mapboxgl-popup-content {
+  background: rgba(2, 6, 23, 0.92) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 8px !important;
+}
+
+.ctrl-sea-loader {
+  animation: ctrl-sea-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 18px rgba(214, 168, 95, 0.42));
+}
+
+.ctrl-sea-brand {
+  color: #f8fafc;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.ctrl-sea-brand:hover {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 0 18px rgba(214, 168, 95, 0.34));
+}
+
+.ctrl-sea-brand-mark {
+  position: relative;
+  display: inline-flex;
+  height: 44px;
+  width: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(3, 21, 45, 0.74), rgba(8, 45, 86, 0.36));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(214, 168, 95, 0.24),
+    0 12px 34px rgba(0, 0, 0, 0.28),
+    0 0 24px rgba(214, 168, 95, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+.ctrl-sea-brand-mark::after {
+  position: absolute;
+  inset: 8%;
+  content: "";
+  border-radius: inherit;
+  border: 1px solid rgba(214, 168, 95, 0.18);
+  pointer-events: none;
+}
+
+.ctrl-sea-brand-mark-icon {
+  height: 44px;
+  width: 44px;
+}
+
+.ctrl-sea-brand-mark-compact {
+  height: 54px;
+  width: 54px;
+}
+
+.ctrl-sea-brand-mark-full {
+  height: 92px;
+  width: 92px;
+}
+
+@keyframes ctrl-sea-pulse {
+  0%, 100% { transform: scale(1); opacity: .78; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.ctrl-sea-route-pulse {
+  animation: ctrl-sea-route-flow 2.2s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(48, 213, 255, 0.65));
+}
+
+@keyframes ctrl-sea-route-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -12; }
+}
