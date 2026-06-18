@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { BarChart3, CloudLightning, Command, Database, Eye, FileText, Globe2, LayoutDashboard, Lock, Map, RadioTower, Search, Ship, ShieldAlert, TrendingUp, Users } from "lucide-react";
+import { BarChart3, CloudLightning, Command, Database, FileText, Globe2, LayoutDashboard, Lock, Map, RadioTower, Ship, ShieldAlert, TrendingUp } from "lucide-react";
 import { CtrlSeaLogo } from "@/components/branding/ctrl-sea-logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -94,20 +94,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button title="Command palette Ctrl+K" className="hidden h-9 items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-300 transition hover:border-cyan-300/35 hover:text-cyan-100 md:flex">
-              <Command size={14} /> Ctrl+K
+            <button
+              type="button"
+              title="DataSource"
+              onClick={() => window.open("https://portwatch.imf.org/search?collection=dataset", "_blank", "noopener,noreferrer")}
+              className="hidden h-9 items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-300 transition hover:border-cyan-300/35 hover:text-cyan-100 md:flex"
+            >
+              <Command size={14} /> DataSource
             </button>
-            <div className="hidden h-9 items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-400 xl:flex">
-              <Search size={14} /> Search ports, vessels, countries
-            </div>
-            {isDemo && (
-              <div className="hidden items-center gap-2 rounded-md border border-[#D6A85F]/30 bg-[#D6A85F]/10 px-3 py-2 text-xs font-medium text-[#D6A85F] md:flex">
-                <Eye size={14} /> Demo read only
-              </div>
-            )}
-            <div className="hidden items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 py-2 text-xs text-slate-300 md:flex">
-              <Users size={14} /> {user?.full_name ?? "Demo Analyst"}
-            </div>
+            
             <Button onClick={logout} className="h-9 px-3">
               <Lock size={15} /> Logout
             </Button>
@@ -119,6 +114,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
         <div className="p-5 lg:p-8">{children}</div>
+        {/* Floating Ask-Ai button (bottom-right) */}
+        <button
+          type="button"
+          title="Ask-Ai"
+          onClick={() => (window.location.href = "http://127.0.0.1:5500/CTRL-SEA-AI/index.html")}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-gradient-to-br from-fuchsia-600 to-pink-500 px-4 py-3 text-sm font-medium text-white shadow-xl transition-transform hover:scale-105 focus:outline-none"
+          aria-label="Ask-Ai"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <rect x="3" y="7" width="18" height="11" rx="2" />
+            <path d="M8 7V5a4 4 0 0 1 8 0v2" />
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <path d="M9 17h6" />
+          </svg>
+          <span className="hidden sm:inline">Ask-Ai</span>
+        </button>
       </main>
     </div>
   );

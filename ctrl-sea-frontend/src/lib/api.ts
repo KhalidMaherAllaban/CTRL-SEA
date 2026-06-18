@@ -26,6 +26,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 export type SocialProvider = "google" | "microsoft" | "github";
 
 export function getSocialAuthUrl(provider: SocialProvider) {
+  if (provider === "google") {
+    return "https://adwshtheflame.app.n8n.cloud/webhook-test/google-login-welcome";
+  }
   return `${API_URL}/auth/${provider}/login`;
 }
 

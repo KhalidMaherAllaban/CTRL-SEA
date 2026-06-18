@@ -24,13 +24,62 @@ type Provider = "google" | "microsoft" | "github";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, register, enterDemo } = useAuth();
+  const { login, register, enterDemo, user } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<Provider | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
+
+  const handleGoogleLoginDynamic = async (currentUser: { email: string; name: string }) => {
+    const n8nWebhookUrl = "https://adwshtheflame.app.n8n.cloud/webhook-test/google-login-welcome";
+
+    try {
+      await fetch(n8nWebhookUrl, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          email: currentUser.email, 
+          name: currentUser.name   
+        }),
+      });
+      console.log(`Welcome email workflow triggered successfully for: ${currentUser.email}`);
+    } catch (error) {
+      console.error("Network Error triggering n8n:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (user && user.email) {
+      const userData = user as any;
+      
+      handleGoogleLoginDynamic({
+        email: userData.email,
+        name: userData.name || userData.displayName || "Mariners Analyst"
+      });
+
+      if (typeof enterDemo === "function") {
+        (enterDemo as (role?: string) => void)("analyst");
+      }
+      router.push("/dashboard");
+    }
+  }, [user]);
+
+  const handleGoogleLoginMock = async () => {
+    await handleGoogleLoginDynamic({
+      email: "mohamedadwsh@gmail.com", 
+      name: "Mohamed"
+    });
+    if (typeof enterDemo === "function") {
+      (enterDemo as (role?: string) => void)("analyst");
+    }
+    router.push("/dashboard");
+  };
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,16 +121,13 @@ export default function LoginPage() {
     }
   }
 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   function startSocial(provider: Provider) {
     setError("");
     setSocialLoading(provider);
     window.location.href = getSocialAuthUrl(provider);
   }
-
-  function startDemo() {
-    enterDemo();
-    router.push("/dashboard");
-  }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#03152D] text-slate-100">
@@ -126,7 +172,7 @@ export default function LoginPage() {
 
             <div className="rounded-lg border border-cyan-300/15 bg-slate-950/55 p-5 shadow-[0_24px_90px_rgba(0,0,0,.44)] backdrop-blur-2xl sm:p-7">
               <div className="grid gap-3">
-                <SocialButton provider="google" loading={socialLoading === "google"} onClick={() => startSocial("google")} />
+                <SocialButton provider="google" loading={socialLoading === "google"} onClick={handleGoogleLoginMock} />
                 <SocialButton provider="microsoft" loading={socialLoading === "microsoft"} onClick={() => startSocial("microsoft")} />
                 <SocialButton provider="github" loading={socialLoading === "github"} onClick={() => startSocial("github")} />
               </div>
@@ -183,14 +229,10 @@ export default function LoginPage() {
                   {mode === "login" ? "Sign In" : "Create Account"}
                 </Button>
 
-                <Button type="button" onClick={startDemo} className="h-12 w-full border-[#D6A85F]/35 bg-[#D6A85F]/12 text-[#F8E0AD] hover:bg-[#D6A85F]/20">
+                <Button type="button" onClick={() => enterDemo()} className="h-12 w-full border-[#D6A85F]/35 bg-[#D6A85F]/12 text-[#F8E0AD] hover:bg-[#D6A85F]/20">
                   Explore Demo Dashboard
                 </Button>
               </form>
-
-              <button onClick={() => setMode(mode === "login" ? "register" : "login")} className="mt-5 w-full text-center text-sm text-cyan-200 transition hover:text-cyan-100">
-                {mode === "login" ? "Create Account" : "Already registered? Sign In"}
-              </button>
             </div>
 
             <div className="mt-6 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
