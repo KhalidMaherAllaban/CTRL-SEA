@@ -43,7 +43,7 @@ npm run dev
 
 ## Deployment
 
-Set `NEXT_PUBLIC_API_URL` to the deployed FastAPI `/api` base URL. Set `NEXT_PUBLIC_MAPBOX_TOKEN` to a public Mapbox token for the interactive globe. Configure Power BI embedding with Azure AD service principal auth, workspace/report IDs, embed tokens, and row-level security roles.
+Set `NEXT_PUBLIC_API_URL` to the deployed FastAPI `/api` base URL. The maritime map uses OpenStreetMap tiles and requires no access token. Configure Power BI embedding with Azure AD service principal auth, workspace/report IDs, embed tokens, and row-level security roles.
 
 ## Roadmap
 

@@ -1,4 +1,5 @@
 import { Card, CardTitle } from "@/components/ui/card";
+import { PowerBIReportViewer } from "@/components/powerbi/power-bi-report-viewer";
 
 export function PowerBiFrame({ title, embedUrl }: { title: string; embedUrl: string }) {
   return (
@@ -14,7 +15,7 @@ export function PowerBiFrame({ title, embedUrl }: { title: string; embedUrl: str
           <span className="rounded border border-[#D6A85F]/30 px-2 py-1 text-[#D6A85F]">AAD token required</span>
         </div>
       </div>
-      <iframe title={title} src={embedUrl} className="mt-4 h-[620px] w-full rounded-md border border-cyan-300/20 bg-slate-950" allowFullScreen />
+      <div className="mt-4"><PowerBIReportViewer title={title} embedUrl={embedUrl} /></div>
     </Card>
   );
 }

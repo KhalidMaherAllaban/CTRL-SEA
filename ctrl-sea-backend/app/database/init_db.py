@@ -12,9 +12,9 @@ logger = get_logger(__name__)
 
 
 def create_tables() -> None:
-    logger.info("Creating or validating database tables")
-    Base.metadata.create_all(bind=engine)
-    table_names = sorted(inspect(engine).get_table_names())
+    logger.info("Creating or validating the application identity table")
+    User.__table__.create(bind=engine, checkfirst=True)
+    table_names = sorted(inspect(engine).get_table_names(schema="dbo"))
     logger.info("Database tables available: %s", ", ".join(table_names))
     if "AppUser" not in table_names:
         raise RuntimeError("AppUser table was not created")

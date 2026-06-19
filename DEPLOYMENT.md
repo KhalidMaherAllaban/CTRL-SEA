@@ -35,7 +35,8 @@ Use `cloudflared-config.example.yml` as the config template.
 ## Production Recommendation
 
 - Frontend: Vercel or Netlify.
-- Backend: Render or Railway.
+- Backend: run within reach of the SQL Server instance. The default Windows Authentication URL for `localhost\SQLEXPRESS` is not reachable from Render, Railway, or another remote Linux container.
 - Set frontend `NEXT_PUBLIC_API_URL` to the deployed backend `/api` URL, or keep the same-origin `/api` rewrite if frontend and backend are proxied together.
 - Set backend `CORS_ORIGINS` to the production frontend URL.
 - Set backend `ENVIRONMENT=production`, a strong `JWT_SECRET`, and a persistent `DATABASE_URL`.
+- Follow [docs/deployment-runbook.md](docs/deployment-runbook.md) for validation and rollback steps.

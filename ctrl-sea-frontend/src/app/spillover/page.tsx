@@ -1,7 +1,7 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { FormEvent, useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { BarPanel, LinePanel, SankeyPanel } from "@/components/charts/analytics-charts";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,32 @@ import { Select } from "@/components/ui/select";
 import { endpoints } from "@/lib/api";
 import type { SpilloverPayload } from "@/lib/types";
 
-const DEFAULT_PAYLOAD: SpilloverPayload = { port: "Alexandria", country: "Egypt", industry: "Electronics", scenario: "Suez closure 14 days" };
+const EMPTY_PAYLOAD: SpilloverPayload = { port: "", country: "", industry: "", scenario: "present" };
 
 export default function SpilloverPage() {
-  const [payload, setPayload] = useState<SpilloverPayload>(DEFAULT_PAYLOAD);
-  const { data, mutate } = useMutation({ mutationFn: endpoints.spillover });
+  const [payload, setPayload] = useState<SpilloverPayload>(EMPTY_PAYLOAD);
+  const map = useQuery({ queryKey: ["spillover-map-options"], queryFn: endpoints.mapLayers });
+  const { data, error, isPending, mutate } = useMutation({ mutationFn: endpoints.spillover });
+  const initialized = useRef(false);
+  const portOptions = useMemo(() => {
+    if (!map.data) return [];
+    const routeOrigins = new Set(map.data.trade_flows.map((route) => route.origin));
+    const routedPorts = map.data.ports.filter((port) => routeOrigins.has(port.port_name));
+    return (routedPorts.length ? routedPorts : map.data.ports).slice(0, 250);
+  }, [map.data]);
+  const countryOptions = useMemo(() => map.data?.countries.filter((item) => item.iso3 && item.country) ?? [], [map.data]);
+  const industryOptions = useMemo(() => map.data?.trade_flows.map((item) => item.commodity).filter(Boolean) ?? [], [map.data]);
 
   useEffect(() => {
-    mutate(DEFAULT_PAYLOAD);
-  }, [mutate]);
+    if (initialized.current || !map.data || !portOptions.length || !countryOptions.length) return;
+    const firstRoute = map.data.trade_flows[0];
+    const routePort = portOptions.find((item) => item.port_name === firstRoute?.origin);
+    const routeCountry = countryOptions.find((item) => item.country === firstRoute?.origin_country);
+    const initial = { port: routePort?.port_code ?? portOptions[0].port_code, country: routeCountry?.iso3 ?? countryOptions[0].iso3, industry: "", scenario: "present" };
+    initialized.current = true;
+    setPayload(initial);
+    mutate(initial);
+  }, [countryOptions, industryOptions, map.data, mutate, portOptions]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -28,13 +45,13 @@ export default function SpilloverPage() {
   return (
     <AppShell>
       <form onSubmit={submit} className="mb-5 grid gap-3 rounded-lg border border-cyan-300/15 bg-slate-950/50 p-4 md:grid-cols-5">
-        {(["port", "country", "industry", "scenario"] as const).map((key) => (
-          <Select key={key} value={payload[key]} onChange={(event) => setPayload((current) => ({ ...current, [key]: event.target.value }))}>
-            {(key === "port" ? ["Alexandria", "Singapore", "Shanghai", "Rotterdam", "Los Angeles"] : key === "country" ? ["Egypt", "China", "Singapore", "Netherlands", "United States"] : key === "industry" ? ["Electronics", "Energy", "Food", "Automotive", "Chemicals"] : ["Suez closure 14 days", "Cyclone port outage", "Conflict escalation", "Extreme flood"]).map((option) => <option key={option}>{option}</option>)}
-          </Select>
-        ))}
-        <Button type="submit">Run Simulation</Button>
+        <Select aria-label="Source port" value={payload.port} onChange={(event) => setPayload((current) => ({ ...current, port: event.target.value }))}>{portOptions.map((port) => <option key={port.port_code} value={port.port_code}>{port.port_name} ({port.port_code})</option>)}</Select>
+        <Select aria-label="Source country" value={payload.country} onChange={(event) => setPayload((current) => ({ ...current, country: event.target.value }))}>{countryOptions.map((item) => <option key={item.iso3} value={item.iso3}>{item.country} ({item.iso3})</option>)}</Select>
+        <Select aria-label="Industry" value={payload.industry} onChange={(event) => setPayload((current) => ({ ...current, industry: event.target.value }))}><option value="">All industries</option>{Array.from(new Set(industryOptions)).map((industry) => <option key={industry} value={industry}>{industry}</option>)}</Select>
+        <Select aria-label="Risk scenario" value={payload.scenario} onChange={(event) => setPayload((current) => ({ ...current, scenario: event.target.value }))}>{["present", "rcp26", "rcp45", "rcp85"].map((scenario) => <option key={scenario} value={scenario}>{scenario.toUpperCase()}</option>)}</Select>
+        <Button type="submit" disabled={!payload.port || !payload.country || isPending}>{isPending ? "Running…" : "Run Simulation"}</Button>
       </form>
+      {error && <p className="mb-4 rounded-md border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-200">Unable to run the spillover analysis.</p>}
       {data && (
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-2">

@@ -1,9 +1,9 @@
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.core.config import get_settings
-from app.db.init_db import initialize_database
+from app.database.init_db import initialize_database
 
 
 def main() -> None:
@@ -13,7 +13,7 @@ def main() -> None:
 
     db_path = Path(settings.database_url.replace("sqlite:///", "", 1)).resolve()
     if db_path.exists():
-        backup_path = db_path.with_suffix(f".{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.bak")
+        backup_path = db_path.with_suffix(f".{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}.bak")
         shutil.copy2(db_path, backup_path)
         db_path.unlink()
         print(f"Backed up {db_path.name} to {backup_path.name}")
@@ -24,4 +24,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

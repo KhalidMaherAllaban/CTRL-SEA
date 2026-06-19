@@ -1,20 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from typing import Annotated
+
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.core.security import create_access_token, get_password_hash, verify_password
+from app.core.security import create_access_token, create_refresh_token, decode_refresh_token, get_password_hash, verify_password
 from app.database.session import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, Token, UserRead
 
 router = APIRouter()
 logger = get_logger(__name__)
+AUTH_ERROR = "Invalid email or password"
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str, remember: bool = True) -> None:
+    settings = get_settings()
+    cookie_options = {
+        "httponly": True,
+        "secure": settings.auth_cookie_secure,
+        "samesite": settings.auth_cookie_samesite,
+        "path": "/",
+    }
+    access_max_age = settings.access_token_expire_minutes * 60 if remember else None
+    refresh_max_age = settings.refresh_token_expire_days * 24 * 60 * 60 if remember else None
+    response.set_cookie("ctrl_sea_access", access_token, max_age=access_max_age, **cookie_options)
+    response.set_cookie("ctrl_sea_refresh", refresh_token, max_age=refresh_max_age, **cookie_options)
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("ctrl_sea_access", path="/")
+    response.delete_cookie("ctrl_sea_refresh", path="/")
+
+
+def _issue_token_pair(user: User, response: Response, remember: bool = True) -> Token:
+    claims = {"role": user.role, "uid": user.id, "remember": remember}
+    access_token = create_access_token(user.email, claims)
+    refresh_token = create_refresh_token(user.email, claims)
+    _set_auth_cookies(response, access_token, refresh_token, remember)
+    return Token(user=UserRead.model_validate(user))
 
 
 @router.post("/register", response_model=Token)
-def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)) -> Token:
+def register(payload: RegisterRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> Token:
     email = str(payload.email).lower()
     logger.info("Registration attempt email=%s client=%s", email, request.client.host if request.client else "unknown")
     try:
@@ -22,20 +53,18 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         if existing:
             logger.warning("Registration rejected because user already exists email=%s", email)
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
-        first_user = db.query(User).count() == 0
         user = User(
             email=email,
             full_name=payload.full_name.strip(),
             hashed_password=get_password_hash(payload.password),
-            role="admin" if first_user else "analyst",
+            role="analyst",
             is_active=True,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-        token = create_access_token(user.email, {"role": user.role, "uid": user.id})
         logger.info("Registration succeeded email=%s role=%s", user.email, user.role)
-        return Token(access_token=token, user=UserRead.model_validate(user))
+        return _issue_token_pair(user, response, payload.remember)
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
@@ -52,23 +81,22 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
 
 
 @router.post("/login", response_model=Token)
-def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> Token:
+def login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> Token:
     email = str(payload.email).lower()
     logger.info("Login attempt email=%s client=%s", email, request.client.host if request.client else "unknown")
     try:
         user = db.query(User).filter(User.email == email).first()
         if not user:
-            logger.warning("Login failed because user was not found email=%s", email)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+            logger.warning("Login failed email=%s reason=invalid_credentials", email)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=AUTH_ERROR)
         if not user.is_active:
             logger.warning("Login failed because user is disabled email=%s", email)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is disabled")
         if not verify_password(payload.password, user.hashed_password):
-            logger.warning("Login failed because password is invalid email=%s", email)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
-        token = create_access_token(user.email, {"role": user.role, "uid": user.id})
+            logger.warning("Login failed email=%s reason=invalid_credentials", email)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=AUTH_ERROR)
         logger.info("Login succeeded email=%s role=%s", user.email, user.role)
-        return Token(access_token=token, user=UserRead.model_validate(user))
+        return _issue_token_pair(user, response, payload.remember)
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
@@ -83,3 +111,33 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 def me(user: User = Depends(get_current_user)) -> UserRead:
     logger.info("Current user loaded email=%s role=%s", user.email, user.role)
     return UserRead.model_validate(user)
+
+
+@router.post("/refresh", response_model=Token)
+def refresh(
+    response: Response,
+    refresh_cookie: Annotated[str | None, Cookie(alias="ctrl_sea_refresh")] = None,
+    db: Session = Depends(get_db),
+) -> Token:
+    if not refresh_cookie:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    try:
+        payload = decode_refresh_token(refresh_cookie)
+    except ValueError as exc:
+        _clear_auth_cookies(response)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials") from exc
+    email = payload.get("sub")
+    if not email:
+        _clear_auth_cookies(response)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not user.is_active:
+        _clear_auth_cookies(response)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return _issue_token_pair(user, response, bool(payload.get("remember", True)))
+
+
+@router.post("/logout")
+def logout(response: Response) -> dict:
+    _clear_auth_cookies(response)
+    return {"status": "ok"}

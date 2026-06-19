@@ -1,10 +1,10 @@
 # Documentation
 
-This directory is for product, operations, and deployment documentation.
+Operational and engineering documentation:
 
 Recommended documents:
 
-- product-overview.md
-- deployment-runbook.md
-- security-notes.md
-- data-model.md
+- [Architecture](architecture.md)
+- [Environment configuration](environment.md)
+- [Deployment runbook](deployment-runbook.md)
+- [Developer onboarding](developer-onboarding.md)

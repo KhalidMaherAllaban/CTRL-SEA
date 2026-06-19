@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pause, Play, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -8,7 +8,6 @@ import { BarPanel, MultiLinePanel, SankeyPanel } from "@/components/charts/analy
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { endpoints } from "@/lib/api";
-import { formatUsd } from "@/lib/utils";
 import type { TradeFlow } from "@/lib/types";
 
 function toMapPosition(longitude: number, latitude: number) {
@@ -24,16 +23,17 @@ function flowPath(flow: TradeFlow) {
 }
 
 export default function TradeFlowsPage() {
-  const [hour, setHour] = useState(8);
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const { data } = useQuery({ queryKey: ["global-trade-flows"], queryFn: endpoints.mapLayers });
+  const dashboard = useQuery({ queryKey: ["dashboard"], queryFn: endpoints.dashboard });
+  const insights = useQuery({ queryKey: ["insights"], queryFn: endpoints.insights });
 
-  const trend = useMemo(() => {
-    return Array.from({ length: 12 }, (_, index) => {
-      const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][index];
-      return { month, imports: 680 + index * 22 + Math.round(Math.sin(index) * 55), exports: 610 + index * 18 + Math.round(Math.cos(index) * 48), total: 1290 + index * 42 };
-    });
-  }, []);
+  useEffect(() => {
+    if (!playing || !data?.trade_flows.length) return;
+    const timer = window.setInterval(() => setFocusedIndex((current) => (current + 1) % data.trade_flows.length), 1200);
+    return () => window.clearInterval(timer);
+  }, [data?.trade_flows.length, playing]);
 
   const sankey = useMemo(() => {
     if (!data) return { nodes: [], links: [] };
@@ -61,15 +61,15 @@ export default function TradeFlowsPage() {
               <CardTitle>Live Maritime Trade Corridors</CardTitle>
               <div className="absolute inset-x-5 bottom-5 z-10 rounded-md border border-cyan-300/15 bg-slate-950/75 p-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-400">Time Playback</span>
-                  <input aria-label="Trade flow time playback" type="range" min={0} max={23} value={hour} onChange={(event) => setHour(Number(event.target.value))} className="w-full accent-cyan-300" />
-                  <span className="w-20 text-right text-sm text-cyan-100">{hour.toString().padStart(2, "0")}:00 UTC</span>
+                  <span className="text-xs text-slate-400">Corridor Playback</span>
+                  <input aria-label="Trade corridor playback" type="range" min={0} max={Math.max(0, data.trade_flows.length - 1)} value={Math.min(focusedIndex, Math.max(0, data.trade_flows.length - 1))} onChange={(event) => setFocusedIndex(Number(event.target.value))} className="w-full accent-cyan-300" />
+                  <span className="w-24 text-right text-sm text-cyan-100">{data.trade_flows.length ? `${focusedIndex + 1}/${data.trade_flows.length}` : "0/0"}</span>
                 </div>
               </div>
               <div className="absolute inset-0 mt-12 bg-[radial-gradient(circle_at_50%_45%,rgba(48,213,255,.18),transparent_32%),linear-gradient(90deg,rgba(48,213,255,.08)_1px,transparent_1px),linear-gradient(rgba(48,213,255,.08)_1px,transparent_1px)] bg-[size:100%_100%,52px_52px,52px_52px]" />
               <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                {data.trade_flows.map((flow) => (
-                  <path key={flow.route_id} d={flowPath(flow)} fill="none" stroke={flow.risk > 60 ? "#D6A85F" : "#30D5FF"} strokeWidth={Math.max(0.35, flow.value / 240)} strokeDasharray="2 2" className="ctrl-sea-route-pulse" opacity={0.78} />
+                {data.trade_flows.map((flow, index) => (
+                  <path key={flow.route_id} d={flowPath(flow)} fill="none" stroke={flow.risk > 60 ? "#D6A85F" : "#30D5FF"} strokeWidth={index === focusedIndex ? Math.max(0.65, flow.value / 180) : Math.max(0.25, flow.value / 320)} strokeDasharray="2 2" className="ctrl-sea-route-pulse" opacity={index === focusedIndex ? 1 : 0.35} />
                 ))}
               </svg>
               {data.trade_flows.map((flow) => {
@@ -87,11 +87,7 @@ export default function TradeFlowsPage() {
             <Card>
               <CardTitle>AI Insights</CardTitle>
               <div className="mt-4 space-y-3">
-                {[
-                  "Asia-Europe trade corridors remain elevated, with electronics flows leading value concentration.",
-                  "Suez-linked traffic shows higher downstream risk because of Red Sea disruption exposure.",
-                  "Transpacific vessel density is recovering, but congestion pressure remains visible near Los Angeles."
-                ].map((insight) => (
+                {(insights.data?.narratives ?? []).map((insight) => (
                   <div key={insight} className="rounded-md border border-cyan-300/10 bg-slate-950/45 p-3 text-sm leading-6 text-slate-300">
                     <Sparkles className="mb-2 text-[#D6A85F]" size={16} />
                     {insight}
@@ -102,24 +98,23 @@ export default function TradeFlowsPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <MultiLinePanel title="Global Trade Trend" data={trend} series={[{ key: "imports", label: "Imports", color: "#30D5FF" }, { key: "exports", label: "Exports", color: "#D6A85F" }, { key: "total", label: "Total Trade", color: "#00E5A0" }]} />
+            <MultiLinePanel title="Global Trade Trend" data={dashboard.data?.trade_trend ?? []} series={[{ key: "value", label: "Trade Volume", color: "#30D5FF" }]} />
             <SankeyPanel data={sankey} />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <BarPanel title="Top Corridors by Cargo Value" data={data.trade_flows.map((flow) => ({ name: flow.route_id, value: flow.value }))} />
+            <BarPanel title="Top Corridors by Daily Capacity at Risk" data={data.trade_flows.map((flow) => ({ name: flow.route_id, value: flow.value }))} />
             <Card>
               <CardTitle>Corridor Ranking</CardTitle>
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="text-slate-500"><tr><th className="py-2">Route</th><th>Commodity</th><th>Value</th><th>Vessels</th><th>Risk</th></tr></thead>
+                  <thead className="text-slate-500"><tr><th className="py-2">Route</th><th>Measure</th><th>Capacity at Risk</th><th>Risk</th></tr></thead>
                   <tbody>
                     {data.trade_flows.map((flow) => (
                       <tr key={flow.route_id} className="border-t border-slate-800">
                         <td className="py-3 text-white">{flow.origin} to {flow.destination}<span className="block text-xs text-slate-500">{flow.origin_country} to {flow.destination_country}</span></td>
                         <td>{flow.commodity}</td>
-                        <td className="text-cyan-100">{formatUsd(flow.value * 1_000_000_000)}</td>
-                        <td>{flow.vessels}</td>
+                        <td className="text-cyan-100">{Number(flow.value).toLocaleString()}</td>
                         <td className="text-[#D6A85F]">{flow.risk}</td>
                       </tr>
                     ))}

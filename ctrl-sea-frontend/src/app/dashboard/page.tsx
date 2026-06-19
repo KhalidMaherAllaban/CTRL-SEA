@@ -7,14 +7,18 @@ import { KpiCard } from "@/components/dashboard/kpi-card";
 import { AreaPanel, BarPanel, GaugeCard, HeatmapPanel, LinePanel, PiePanel, TreemapPanel } from "@/components/charts/analytics-charts";
 import { Card, CardTitle } from "@/components/ui/card";
 import { endpoints } from "@/lib/api";
-import { formatUsd } from "@/lib/utils";
+import { formatMetric } from "@/lib/utils";
 
-const periods = ["Daily", "Weekly", "Monthly"] as const;
+const periods = [
+  { label: "6 Months", months: 6 },
+  { label: "12 Months", months: 12 },
+  { label: "18 Months", months: 18 },
+] as const;
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<(typeof periods)[number]>("Daily");
+  const [period, setPeriod] = useState(12);
   const { data, isLoading, error } = useQuery({ queryKey: ["dashboard"], queryFn: endpoints.dashboard });
-  const tradeTrend = useMemo(() => data?.trade_trend.map((row, index) => ({ ...row, value: period === "Daily" ? row.value : period === "Weekly" ? Math.round(row.value * 6.4 + index * 2) : Math.round(row.value * 27.5) })) ?? [], [data, period]);
+  const tradeTrend = useMemo(() => data?.trade_trend.slice(-period) ?? [], [data, period]);
 
   return (
     <AppShell>
@@ -29,7 +33,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex rounded-md border border-cyan-300/15 bg-slate-950/70 p-1">
               {periods.map((item) => (
-                <button key={item} onClick={() => setPeriod(item)} className={`rounded px-3 py-1.5 text-sm transition ${period === item ? "bg-cyan-300/15 text-cyan-100" : "text-slate-400 hover:text-white"}`}>{item}</button>
+                <button key={item.months} onClick={() => setPeriod(item.months)} className={`rounded px-3 py-1.5 text-sm transition ${period === item.months ? "bg-cyan-300/15 text-cyan-100" : "text-slate-400 hover:text-white"}`}>{item.label}</button>
               ))}
             </div>
           </div>
@@ -39,7 +43,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
-            <div className="xl:col-span-2"><AreaPanel title={`Global Trade Trend (${period})`} data={tradeTrend} /></div>
+            <div className="xl:col-span-2"><AreaPanel title={`Global Trade Trend (${period} months)`} data={tradeTrend} /></div>
             <LinePanel title="Vessel Activity Trend" data={data.vessel_activity_trend} />
           </div>
 
@@ -58,13 +62,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <BarPanel title="Top Ports by Cargo Value" data={data.port_rankings.map((p) => ({ name: p.port_name, value: Math.round(p.trade_value_usd / 1_000_000_000) }))} />
-            <BarPanel title="Top Countries by Maritime Trade" data={data.country_rankings.map((c) => ({ name: c.iso3, value: Math.round((c.imports_usd + c.exports_usd) / 1_000_000_000) }))} />
+            <BarPanel title="Top Ports by Throughput" data={data.port_rankings.map((p) => ({ name: p.port_name, value: p.trade_value_usd }))} />
+            <BarPanel title="Top Countries by Throughput" data={data.country_rankings.map((c) => ({ name: c.iso3, value: c.imports_usd + c.exports_usd }))} />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <RankingTable title="Top Ports Ranking" rows={data.port_rankings.map((port) => ({ name: port.port_name, meta: `${port.port_code} · ${port.country}`, value: formatUsd(port.trade_value_usd), score: port.risk_score }))} />
-            <RankingTable title="Top Countries Ranking" rows={data.country_rankings.map((country) => ({ name: country.country, meta: `${country.iso3} · ${country.region}`, value: formatUsd(country.imports_usd + country.exports_usd), score: country.risk_exposure }))} />
+            <RankingTable title="Top Ports Ranking" rows={data.port_rankings.map((port) => ({ name: port.port_name, meta: `${port.port_code} · ${port.country}`, value: formatMetric(port.trade_value_usd), score: port.risk_score }))} />
+            <RankingTable title="Top Countries Ranking" rows={data.country_rankings.map((country) => ({ name: country.country, meta: `${country.iso3} · ${country.region}`, value: formatMetric(country.imports_usd + country.exports_usd), score: country.risk_exposure }))} />
           </div>
         </div>
       )}

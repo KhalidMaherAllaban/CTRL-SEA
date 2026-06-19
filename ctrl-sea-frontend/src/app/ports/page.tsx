@@ -8,7 +8,7 @@ import { AreaPanel, BarPanel, LinePanel } from "@/components/charts/analytics-ch
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { endpoints } from "@/lib/api";
-import { formatUsd } from "@/lib/utils";
+import { formatMetric } from "@/lib/utils";
 
 export default function PortsPage() {
   const [search, setSearch] = useState("");
@@ -43,14 +43,14 @@ export default function PortsPage() {
           <CardTitle>Port Ranking</CardTitle>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-slate-500"><tr><th className="py-2">Port</th><th>Type</th><th>Vessels</th><th>Trade</th><th>Risk</th></tr></thead>
+              <thead className="text-slate-500"><tr><th className="py-2">Port</th><th>Type</th><th>Vessels</th><th>Throughput</th><th>Risk</th></tr></thead>
               <tbody>
                 {data?.items.map((port) => (
                   <tr key={port.port_code} className="border-t border-slate-800">
                     <td className="py-3 text-white">{port.port_name}<span className="block text-xs text-slate-500">{port.port_code}</span></td>
                     <td>{port.port_type}</td>
                     <td>{port.vessel_count}</td>
-                    <td>{formatUsd(port.trade_value_usd)}</td>
+                    <td>{formatMetric(port.trade_value_usd)}</td>
                     <td className="text-cyan-200">{port.risk_score}</td>
                   </tr>
                 ))}

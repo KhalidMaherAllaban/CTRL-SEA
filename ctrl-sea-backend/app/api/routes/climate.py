@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends
-
-from app.api.deps import get_current_user
+from sqlalchemy.orm import Session
+from app.database.session import get_db
 from app.schemas.maritime import ClimateRiskResponse
-from app.services.demo_data import climate_payload
-
+from app.services.warehouse import climate
 router = APIRouter()
 
-
 @router.get("", response_model=ClimateRiskResponse)
-def climate_risk(_: object = Depends(get_current_user)) -> ClimateRiskResponse:
-    return ClimateRiskResponse(**climate_payload())
-
+def climate_risk(db: Session = Depends(get_db)): return climate(db)

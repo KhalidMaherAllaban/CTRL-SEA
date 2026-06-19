@@ -1,17 +1,17 @@
 # CTRL SEA Architecture
 
-CTRL SEA is organized as a frontend application, backend API, and analytics-oriented data model.
+CTRL SEA is a Next.js command interface backed by a read-optimized FastAPI service and the `ITI_Graduation_PortWatch` SQL Server warehouse.
 
 ## Boundaries
 
-- Frontend owns user experience, dashboard composition, client-side auth state, charts, and map rendering.
-- Backend owns authentication, API contracts, data access, service orchestration, and operational health checks.
-- Database owns durable maritime intelligence entities and facts.
+- Frontend owns user experience, route guards, dashboard composition, charts, Power BI embedding, and browser-only Leaflet rendering.
+- Backend owns HTTP-only cookie authentication, API contracts, validation, cached warehouse queries, logging, and operational health checks.
+- SQL Server is the maritime source of truth. The API only creates/updates `AppUser`; warehouse tables are read-only.
 
 ## Data Model
 
-The SQL schema follows a star-schema pattern with dimensions for dates, countries, ports, vessels, chokepoints, routes, industries, scenarios, hazards, and disruption events. Fact tables capture daily port metrics, congestion, chokepoint activity, trade flows, climate risk, trade risk, disruptions, spillover, and supply-chain dependency.
+The warehouse exposes five dimensions and nine fact tables under `portwatch_dw`. Generated SQLAlchemy mappings document those objects while optimized SQL handles large analytical aggregations.
 
 ## Deployment Pattern
 
-Use Vercel/Netlify for frontend hosting and Render/Railway or another container platform for the FastAPI backend. Use provider-managed secrets for all environment variables.
+The frontend can run on Vercel or another Next.js host. With the current Windows Authentication connection, the API must run where `localhost\SQLEXPRESS` and the Windows identity are available. A remote Linux deployment requires a reachable SQL Server endpoint and a supported authentication strategy.

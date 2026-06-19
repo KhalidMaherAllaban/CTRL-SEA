@@ -1,32 +1,23 @@
-from fastapi import APIRouter, Depends, Query
-
-from app.api.deps import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from app.database.session import get_db
 from app.schemas.common import PaginatedResponse
 from app.schemas.maritime import PortRead
-from app.services.demo_data import PORTS, port_analytics_payload
+from app.services import warehouse
 
 router = APIRouter()
 
-
 @router.get("", response_model=PaginatedResponse[PortRead])
-def list_ports(
-    search: str | None = Query(default=None),
-    country: str | None = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
-    _: object = Depends(get_current_user),
-) -> PaginatedResponse[PortRead]:
-    rows = PORTS
-    if search:
-        rows = [row for row in rows if search.lower() in row["port_name"].lower() or search.lower() in row["port_code"].lower()]
-    if country:
-        rows = [row for row in rows if country.lower() in row["country"].lower()]
-    total = len(rows)
-    start = (page - 1) * size
-    items = [PortRead(**row) for row in rows[start : start + size]]
-    return PaginatedResponse[PortRead](items=items, total=total, page=page, size=size)
-
+def ports(search: str | None = None, country: str | None = None, page: int = Query(1, ge=1), size: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    items, total = warehouse.list_ports(db, search, country, page, size)
+    return {"items": items, "total": total, "page": page, "size": size}
 
 @router.get("/analytics")
-def analytics(_: object = Depends(get_current_user)) -> dict:
-    return port_analytics_payload()
+def analytics(db: Session = Depends(get_db)) -> dict:
+    return warehouse.port_analytics(db)
+
+@router.get("/{portid}")
+def detail(portid: str, db: Session = Depends(get_db)) -> dict:
+    result = warehouse.port_detail(db, portid)
+    if not result: raise HTTPException(404, "Port not found")
+    return result

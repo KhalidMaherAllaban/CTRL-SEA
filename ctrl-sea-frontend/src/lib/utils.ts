@@ -12,3 +12,6 @@ export function formatUsd(value: number) {
   return `$${value.toLocaleString()}`;
 }
 
+export function formatMetric(value: number) {
+  return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}

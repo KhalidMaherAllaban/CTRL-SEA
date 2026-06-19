@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
 
 class CountryRead(BaseModel):
@@ -71,10 +72,10 @@ class TradeRiskResponse(BaseModel):
 
 
 class SpilloverRequest(BaseModel):
-    port: str
-    country: str
-    industry: str
-    scenario: str
+    port: str = Field(min_length=1, max_length=30)
+    country: str = Field(min_length=3, max_length=3, pattern=r"^[A-Za-z]{3}$")
+    industry: str = Field(default="", max_length=200)
+    scenario: Literal["present", "rcp26", "rcp45", "rcp85"] = "present"
 
 
 class SpilloverResponse(BaseModel):
@@ -106,8 +107,10 @@ class ReportRead(BaseModel):
     id: str
     title: str
     description: str
-    embed_url: str
+    embed_url: AnyHttpUrl
     workspace: str
+    pages: list[str] = Field(default_factory=list)
+    page_labels: list[str] = Field(default_factory=list)
 
 
 class DatasetUploadResult(BaseModel):

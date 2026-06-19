@@ -22,7 +22,7 @@ export default function TradeRiskPage() {
               {data.trade_flows.map((flow) => (
                 <div key={`${flow.origin}-${flow.destination}`} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
                   <p className="text-white">{flow.origin} → {flow.destination}</p>
-                  <p className="mt-2 text-sm text-slate-400">${flow.value}B flow · Risk {flow.risk}</p>
+                  <p className="mt-2 text-sm text-slate-400">{flow.value.toLocaleString()} daily capacity at risk · Risk {flow.risk}</p>
                 </div>
               ))}
             </div>

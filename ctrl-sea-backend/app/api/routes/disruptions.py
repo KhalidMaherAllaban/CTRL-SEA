@@ -1,13 +1,9 @@
-from fastapi import APIRouter, Depends
-
-from app.api.deps import get_current_user
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+from app.database.session import get_db
 from app.schemas.maritime import DisruptionRead
-from app.services.demo_data import disruptions_payload
-
+from app.services.warehouse import disruption_list
 router = APIRouter()
 
-
 @router.get("", response_model=list[DisruptionRead])
-def list_disruptions(_: object = Depends(get_current_user)) -> list[DisruptionRead]:
-    return [DisruptionRead(**row) for row in disruptions_payload()]
-
+def disruptions(limit: int = Query(250, ge=1, le=1000), db: Session = Depends(get_db)): return disruption_list(db, limit)

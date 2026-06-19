@@ -1,24 +1,35 @@
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.database.init_db import initialize_database
+from app.database.session import engine
 from app.models import maritime, user  # noqa: F401
 
 configure_logging()
 logger = get_logger(__name__)
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    logger.info("Starting CTRL SEA API environment=%s database_configured=%s cors_origins=%s", settings.environment, bool(settings.database_url), settings.cors_origin_list)
+    initialize_database(settings)
+    yield
+
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
     description="CTRL SEA Maritime Intelligence Platform API",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -28,6 +39,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")
@@ -44,12 +56,6 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    logger.info("Starting CTRL SEA API environment=%s database=%s cors_origins=%s", settings.environment, settings.database_url, settings.cors_origin_list)
-    initialize_database(settings)
-
-
 @app.exception_handler(SQLAlchemyError)
 async def database_exception_handler(_: Request, exc: SQLAlchemyError) -> JSONResponse:
     logger.exception("Unhandled database error", exc_info=exc)
@@ -64,7 +70,9 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "ctrl-sea-api"}
+    with engine.connect() as connection:
+        connection.exec_driver_sql("SELECT 1")
+    return {"status": "ok", "service": "ctrl-sea-api", "database": "connected"}
 
 
 app.include_router(api_router)

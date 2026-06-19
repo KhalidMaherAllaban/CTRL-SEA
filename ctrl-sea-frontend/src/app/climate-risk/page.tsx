@@ -14,7 +14,7 @@ export default function ClimateRiskPage() {
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-2">
             <BarPanel title="Scenario Asset Damage" data={data.scenario_comparison.map((x) => ({ name: x.scenario, value: x.assetDamage }))} />
-            <AreaPanel title="Climate Risk Trend" data={data.trend} />
+            <AreaPanel title="Risk by Scenario" data={data.trend} />
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
             <BarPanel title="Risk By Country" data={data.risk_by_country.map((x) => ({ name: x.country, value: x.risk }))} />

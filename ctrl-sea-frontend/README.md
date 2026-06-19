@@ -15,16 +15,16 @@ Open `http://localhost:3000`.
 ## Environment
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token
+NEXT_PUBLIC_API_URL=/api
+BACKEND_API_URL=http://127.0.0.1:8000/api
 ```
 
-Without a Mapbox token, the map component still renders the maritime overlays on a dark fallback canvas. Add a token for the full Mapbox globe basemap.
+The maritime map uses OpenStreetMap tiles through React Leaflet and requires no map token.
+
+Protected App Router pages are guarded by Next middleware and then authorized by FastAPI HTTP-only cookie sessions. Power BI reports are configured by the backend and rendered through the responsive `PowerBIContainer` and `PowerBIReportViewer` components.
 
 ## Deployment On Vercel
 
 1. Import this folder as the Vercel project root.
-2. Set `NEXT_PUBLIC_API_URL` to the Render backend URL plus `/api`.
-3. Set `NEXT_PUBLIC_MAPBOX_TOKEN`.
-4. Build command: `npm run build`.
-
+2. Keep `NEXT_PUBLIC_API_URL=/api` and set `BACKEND_API_URL` to the backend `/api` URL.
+3. Build command: `npm run build`.

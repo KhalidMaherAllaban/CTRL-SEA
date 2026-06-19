@@ -10,17 +10,19 @@ import type {
   DashboardOverview,
   Disruption,
   EtlResult,
+  ExecutiveInsights,
   MapLayers,
   Paginated,
   Port,
   Report,
   SpilloverPayload,
   SpilloverResult,
-  TokenResponse,
+  AuthResponse,
   TradeRisk,
   User
 } from "@/lib/types";
 
+<<<<<<< HEAD
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
 export type SocialProvider = "google" | "microsoft" | "github";
@@ -31,6 +33,9 @@ export function getSocialAuthUrl(provider: SocialProvider) {
   }
   return `${API_URL}/auth/${provider}/login`;
 }
+=======
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
 
 export class ApiError extends Error {
   status?: number;
@@ -65,25 +70,32 @@ function extractApiError(error: unknown): ApiError {
 
 export const api = axios.create({
   baseURL: API_URL,
-  headers: { "Content-Type": "application/json" }
-});
-
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("ctrl-sea-token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true
 });
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(extractApiError(error))
+  async (error) => {
+    const requestPath = axios.isAxiosError(error) ? error.config?.url ?? "" : "";
+    const isCredentialRequest = ["/auth/login", "/auth/register", "/auth/refresh"].some((path) => requestPath.endsWith(path));
+    if (axios.isAxiosError(error) && error.response?.status === 401 && error.config && !isCredentialRequest && !error.config.headers?.["x-ctrl-sea-refresh"]) {
+      try {
+        await api.post("/auth/refresh", undefined, { headers: { "x-ctrl-sea-refresh": "1" } });
+        return api.request({ ...error.config, headers: { ...error.config.headers, "x-ctrl-sea-refresh": "1" } });
+      } catch {
+        // Fall through to the original auth error.
+      }
+    }
+    return Promise.reject(extractApiError(error));
+  }
 );
 
 export const endpoints = {
-  login: (email: string, password: string) => api.post<TokenResponse>("/auth/login", { email, password }).then((r) => r.data),
-  register: (full_name: string, email: string, password: string) => api.post<TokenResponse>("/auth/register", { full_name, email, password }).then((r) => r.data),
+  login: (email: string, password: string, remember = true) => api.post<AuthResponse>("/auth/login", { email, password, remember }).then((r) => r.data),
+  register: (full_name: string, email: string, password: string) => api.post<AuthResponse>("/auth/register", { full_name, email, password }).then((r) => r.data),
+  logout: () => api.post("/auth/logout").then((r) => r.data),
+  refresh: () => api.post<AuthResponse>("/auth/refresh").then((r) => r.data),
   me: () => api.get<User>("/auth/me").then((r) => r.data),
   dashboard: () => api.get<DashboardOverview>("/dashboard").then((r) => r.data),
   mapLayers: () => api.get<MapLayers>("/map/layers").then((r) => r.data),
@@ -96,6 +108,8 @@ export const endpoints = {
   trade: () => api.get<TradeRisk>("/trade-risk").then((r) => r.data),
   spillover: (payload: SpilloverPayload) => api.post<SpilloverResult>("/spillover/simulate", payload).then((r) => r.data),
   disruptions: () => api.get<Disruption[]>("/disruptions").then((r) => r.data),
+  riskCenter: () => api.get("/risk-center").then((r) => r.data),
+  insights: () => api.get<ExecutiveInsights>("/insights").then((r) => r.data),
   reports: () => api.get<Report[]>("/reports").then((r) => r.data),
   adminHealth: () => api.get<AdminHealth>("/admin/health").then((r) => r.data),
   users: () => api.get<AdminUser[]>("/admin/users").then((r) => r.data),

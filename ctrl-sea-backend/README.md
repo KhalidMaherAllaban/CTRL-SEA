@@ -23,16 +23,11 @@ uvicorn app.main:app --reload
 
 API docs are available at `http://localhost:8000/docs`.
 
-## Local Auth Credentials
+Authentication tokens are issued only through secure HTTP-only cookies. Access tokens default to 30 minutes and are rotated through the refresh endpoint.
 
-In `development`, startup seeds the first local admin if the user table is empty:
+## Local Authentication
 
-```text
-Email: admin@ctrlsea.com
-Password: Admin12345!
-```
-
-Registered users are promoted to `admin` only when they are the first user in an empty database. Later users become `analyst`.
+User registration creates analyst accounts. Optional development admin seeding is disabled by default and uses the `SEED_ADMIN_*` environment variables when explicitly enabled.
 
 Run the auth smoke test while the API is running:
 
@@ -40,7 +35,7 @@ Run the auth smoke test while the API is running:
 python -m scripts.auth_smoke_test
 ```
 
-Safely recreate a corrupted local SQLite database with a timestamped backup:
+The legacy SQLite reset helper refuses to run against SQL Server and is not part of the warehouse workflow.
 
 ```bash
 python -m scripts.reset_dev_db
@@ -48,13 +43,15 @@ python -m scripts.reset_dev_db
 
 ## SQL Server
 
-Create the warehouse using `sql/schema.sql`, then set `DATABASE_URL`:
+The warehouse must already exist. `sql/schema.sql` validates the required tables without modifying them. Configure `DATABASE_URL`:
 
 ```env
-DATABASE_URL=mssql+pyodbc://USER:PASSWORD@SERVER/ctrl_sea?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+DATABASE_URL=mssql+pyodbc://@localhost\SQLEXPRESS/ITI_Graduation_PortWatch?driver=ODBC+Driver+18+for+SQL+Server&trusted_connection=yes&TrustServerCertificate=yes
 ```
 
 ## Deployment On Render
+
+The default `localhost\SQLEXPRESS` Windows Authentication connection cannot work from a remote Render container. Use these steps only after providing a reachable SQL Server endpoint and supported service identity.
 
 1. Create a Render Web Service from this folder.
 2. Build command: `pip install -r requirements.txt`

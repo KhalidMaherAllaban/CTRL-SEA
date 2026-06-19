@@ -6,9 +6,7 @@ export type User = {
   is_active: boolean;
 };
 
-export type TokenResponse = {
-  access_token: string;
-  token_type: string;
+export type AuthResponse = {
   user: User;
 };
 
@@ -31,6 +29,8 @@ export type Port = {
   vessel_count: number;
   trade_value_usd: number;
   risk_score: number;
+  climate_risk?: number;
+  trade_risk?: number;
   country?: string;
   congestion?: number;
   imports?: number;
@@ -73,6 +73,8 @@ export type CountryMetric = {
   exports_usd: number;
   dependency: number;
   risk_exposure: number;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type TradeFlow = {
@@ -134,6 +136,7 @@ export type EtlResult = {
   jobId: string;
   layers?: Array<{ name: string; description: string }>;
   entities?: string[];
+  etl_available?: boolean;
 };
 
 export type ClimateRisk = {
@@ -146,7 +149,7 @@ export type ClimateRisk = {
 export type TradeRisk = {
   value_at_risk: Array<{ industry: string; value: number }>;
   downtime: Array<{ country: string; days: number }>;
-  industry_impact: Array<{ industry: string; impact: number }>;
+  industry_impact: Array<{ name: string; imports: number; exports: number }>;
   trade_flows: TradeFlow[];
 };
 
@@ -180,6 +183,8 @@ export type Disruption = {
   affected_countries: string[];
   impact_score: number;
   estimated_loss_usd: number;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Report = {
@@ -188,6 +193,8 @@ export type Report = {
   description: string;
   embed_url: string;
   workspace: string;
+  pages?: string[];
+  page_labels?: string[];
 };
 
 export type CountryAnalytics = {
@@ -197,4 +204,15 @@ export type CountryAnalytics = {
   risk_exposure: Array<{ country: string; risk: number }>;
   partners: Array<{ country: string; value: number }>;
   trend: Array<{ month: string; value: number }>;
+};
+
+export type ExecutiveInsights = {
+  narratives: string[];
+  top_trade_corridors: Array<{ origin: string; destination: string; value: number; risk: number }>;
+  fastest_growing_ports: Array<{ port_code: string; port_name: string; country: string; recent_calls: number; previous_calls: number; growth: number }>;
+  highest_risk_countries: CountryMetric[];
+  highest_risk_routes: Array<{ origin: string; destination: string; value: number; risk: number }>;
+  most_critical_chokepoints: Chokepoint[];
+  largest_spillover_effects: Array<{ source: string; destination: string; industry: string; impact: number }>;
+  most_disrupted_regions: Array<{ region: string; disruptions: number; affected_ports: number }>;
 };

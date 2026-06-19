@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends
-
-from app.api.deps import get_current_user
+from sqlalchemy.orm import Session
+from app.database.session import get_db
 from app.schemas.maritime import TradeRiskResponse
-from app.services.demo_data import trade_payload
-
+from app.services.warehouse import trade_risk
 router = APIRouter()
 
-
 @router.get("", response_model=TradeRiskResponse)
-def trade_risk(_: object = Depends(get_current_user)) -> TradeRiskResponse:
-    return TradeRiskResponse(**trade_payload())
-
+def trade(db: Session = Depends(get_db)): return trade_risk(db)

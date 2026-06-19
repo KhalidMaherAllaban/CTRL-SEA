@@ -8,15 +8,14 @@ CTRL SEA is a maritime intelligence platform for monitoring ports, vessels, chok
 flowchart LR
   Browser[Browser] --> Next[Next.js Frontend]
   Next -->|/api rewrite| API[FastAPI Backend]
-  API --> Services[Maritime Services]
-  Services --> Demo[Demo Data Layer]
-  API --> DB[(SQL / SQLite Dev DB)]
-  DB --> Star[PortWatch-style Star Schema]
+  API --> Services[Warehouse Query Services]
+  Services --> DB[(ITI Graduation PortWatch)]
+  DB --> Star[PortWatch Warehouse Schema]
 ```
 
 ## Technology Stack
 
-- Frontend: Next.js 15, React 19, TypeScript, Tailwind CSS, React Query, Recharts, Mapbox GL
+- Frontend: Next.js 15, React 19, TypeScript, Tailwind CSS, React Query, Recharts, React Leaflet, OpenStreetMap
 - Backend: FastAPI, SQLAlchemy, Pydantic, JWT auth
 - Data model: Countries, ports, vessels, trade routes, chokepoints, disruptions, climate risk, trade risk
 - Deployment targets: Vercel or Netlify for frontend; Render or Railway for backend; Cloudflare Tunnel for previews
@@ -87,7 +86,6 @@ Frontend:
 ```text
 NEXT_PUBLIC_API_URL=/api
 BACKEND_API_URL=http://127.0.0.1:8000/api
-NEXT_PUBLIC_MAPBOX_TOKEN=your-mapbox-public-token
 ```
 
 Backend:
@@ -95,10 +93,13 @@ Backend:
 ```text
 APP_NAME=CTRL SEA API
 ENVIRONMENT=development
-DATABASE_URL=sqlite:///./ctrl_sea_dev.db
+DATABASE_URL=mssql+pyodbc://@localhost\SQLEXPRESS/ITI_Graduation_PortWatch?driver=ODBC+Driver+18+for+SQL+Server&trusted_connection=yes&TrustServerCertificate=yes
 JWT_SECRET=replace-with-a-long-random-secret
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=14
+AUTH_COOKIE_SECURE=false
+POWER_BI_REPORTS_JSON=[]
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 SEED_ADMIN_ENABLED=false
 SEED_ADMIN_EMAIL=admin@example.com
@@ -113,16 +114,18 @@ Never commit real `.env` files, JWT secrets, admin passwords, API keys, database
 ```powershell
 cd ctrl-sea-frontend
 npm run lint
+npm test
 npm run build
 
 cd ..\ctrl-sea-backend
 python -m compileall app scripts
+python -m pytest -q
 ```
 
 ## Deployment
 
 - Frontend: deploy `ctrl-sea-frontend` to Vercel or Netlify.
-- Backend: deploy `ctrl-sea-backend` to Render or Railway.
+- Backend: deploy beside a reachable SQL Server instance. Windows Authentication to `localhost\SQLEXPRESS` requires the API process to run inside the same Windows trust boundary.
 - Set production `JWT_SECRET`, `DATABASE_URL`, and `CORS_ORIGINS` in provider secrets.
 - Prefer a persistent domain or named Cloudflare Tunnel for preview/proxy use. Temporary `trycloudflare.com` URLs are not production-stable.
 

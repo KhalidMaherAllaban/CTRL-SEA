@@ -3,7 +3,7 @@ import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ctrl-sea.local"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
     default: "CTRL SEA | Maritime Intelligence Platform",
     template: "CTRL SEA | %s"

@@ -1,3 +1,3 @@
 # Repositories
 
-Use this directory for database-backed repository abstractions as the backend moves beyond demo data services.
+Use this directory for repository abstractions when a domain requires behavior beyond the read-optimized warehouse service.

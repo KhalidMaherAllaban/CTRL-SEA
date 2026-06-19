@@ -1,152 +1,251 @@
-from datetime import date, datetime
+"""Read-only ORM mapping for the PortWatch warehouse schema."""
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
+from datetime import date, datetime
+from decimal import Decimal
+
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Numeric, SmallInteger, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
 
+SCHEMA = "portwatch_dw"
+
+
+class DateDimension(Base):
+    __tablename__ = "dimension_Date"
+    __table_args__ = {"schema": SCHEMA}
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    year: Mapped[int] = mapped_column(SmallInteger)
+    quarter: Mapped[int] = mapped_column()
+    month: Mapped[int] = mapped_column()
+    day: Mapped[int] = mapped_column()
+
 
 class Country(Base):
-    __tablename__ = "DimCountry"
-
-    country_key: Mapped[int] = mapped_column("CountryKey", Integer, primary_key=True)
-    iso3: Mapped[str] = mapped_column("Iso3", String(3), unique=True, index=True)
-    country_name: Mapped[str] = mapped_column("CountryName", String(120), index=True)
-    region: Mapped[str | None] = mapped_column("Region", String(120))
-    income_group: Mapped[str | None] = mapped_column("IncomeGroup", String(80))
+    __tablename__ = "dimension_Country"
+    __table_args__ = {"schema": SCHEMA}
+    iso3: Mapped[str] = mapped_column("ISO3", String(3), primary_key=True)
+    country: Mapped[str | None] = mapped_column(String(150))
+    official: Mapped[str | None] = mapped_column(String(200))
+    shortname: Mapped[str | None] = mapped_column(String(150))
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    lon: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    ports: Mapped[list["Port"]] = relationship(back_populates="country_dimension")
 
 
 class Port(Base):
-    __tablename__ = "DimPort"
-
-    port_key: Mapped[int] = mapped_column("PortKey", Integer, primary_key=True)
-    port_code: Mapped[str] = mapped_column("PortCode", String(24), unique=True, index=True)
-    port_name: Mapped[str] = mapped_column("PortName", String(160), index=True)
-    country_key: Mapped[int] = mapped_column("CountryKey", ForeignKey("DimCountry.CountryKey"), index=True)
-    latitude: Mapped[float] = mapped_column("Latitude", Float)
-    longitude: Mapped[float] = mapped_column("Longitude", Float)
-    capacity_teu: Mapped[int | None] = mapped_column("CapacityTeu", Integer)
-    port_type: Mapped[str | None] = mapped_column("PortType", String(50))
+    __tablename__ = "dimension_Ports"
+    __table_args__ = {"schema": SCHEMA}
+    portid: Mapped[str] = mapped_column(String(30), primary_key=True)
+    portname: Mapped[str | None] = mapped_column(String(200))
+    country: Mapped[str | None] = mapped_column(String(150))
+    iso3: Mapped[str | None] = mapped_column("ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"))
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    lon: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    continent: Mapped[str | None] = mapped_column(String(100))
+    fullname: Mapped[str | None] = mapped_column(String(250))
+    industry_top1: Mapped[str | None] = mapped_column(String(200))
+    industry_top2: Mapped[str | None] = mapped_column(String(200))
+    industry_top3: Mapped[str | None] = mapped_column(String(200))
+    vessel_count_total: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_container: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_dry_bulk: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_general_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_roro: Mapped[int | None] = mapped_column("vessel_count_RoRo", BigInteger)
+    vessel_count_tanker: Mapped[int | None] = mapped_column(BigInteger)
+    share_country_maritime_import: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    share_country_maritime_export: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    country_dimension: Mapped[Country | None] = relationship(back_populates="ports")
 
 
 class Chokepoint(Base):
-    __tablename__ = "DimChokepoint"
-
-    chokepoint_key: Mapped[int] = mapped_column("ChokepointKey", Integer, primary_key=True)
-    chokepoint_code: Mapped[str] = mapped_column("ChokepointCode", String(40), unique=True, index=True)
-    chokepoint_name: Mapped[str] = mapped_column("ChokepointName", String(160), index=True)
-    latitude: Mapped[float] = mapped_column("Latitude", Float)
-    longitude: Mapped[float] = mapped_column("Longitude", Float)
-    region: Mapped[str | None] = mapped_column("Region", String(120))
-
-
-class Scenario(Base):
-    __tablename__ = "DimScenario"
-
-    scenario_key: Mapped[int] = mapped_column("ScenarioKey", Integer, primary_key=True)
-    scenario_code: Mapped[str] = mapped_column("ScenarioCode", String(40), unique=True)
-    scenario_name: Mapped[str] = mapped_column("ScenarioName", String(140))
-    scenario_description: Mapped[str | None] = mapped_column("ScenarioDescription", String(500))
-
-
-class Industry(Base):
-    __tablename__ = "DimIndustry"
-
-    industry_key: Mapped[int] = mapped_column("IndustryKey", Integer, primary_key=True)
-    industry_code: Mapped[str] = mapped_column("IndustryCode", String(40), unique=True)
-    industry_name: Mapped[str] = mapped_column("IndustryName", String(160))
+    __tablename__ = "dimension_ChockPoints"
+    __table_args__ = {"schema": SCHEMA}
+    portid: Mapped[str] = mapped_column(String(30), primary_key=True)
+    fullname: Mapped[str | None] = mapped_column(String(250))
+    industry_top1: Mapped[str | None] = mapped_column(String(200))
+    industry_top2: Mapped[str | None] = mapped_column(String(200))
+    industry_top3: Mapped[str | None] = mapped_column(String(200))
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    lon: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    portname: Mapped[str | None] = mapped_column(String(200))
+    vessel_count_total: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_container: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_dry_bulk: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_general_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    vessel_count_roro: Mapped[int | None] = mapped_column("vessel_count_RoRo", BigInteger)
+    vessel_count_tanker: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class DisruptionEvent(Base):
-    __tablename__ = "DimDisruptionEvent"
-
-    disruption_event_key: Mapped[int] = mapped_column("DisruptionEventKey", Integer, primary_key=True)
-    event_code: Mapped[str] = mapped_column("EventCode", String(60), unique=True)
-    event_name: Mapped[str] = mapped_column("EventName", String(180))
-    event_type: Mapped[str] = mapped_column("EventType", String(80))
-    severity: Mapped[str] = mapped_column("Severity", String(30))
-    started_at: Mapped[datetime] = mapped_column("StartedAt", DateTime)
-    ended_at: Mapped[datetime | None] = mapped_column("EndedAt", DateTime)
-
-
-class Vessel(Base):
-    __tablename__ = "DimVessel"
-
-    vessel_key: Mapped[int] = mapped_column("VesselKey", Integer, primary_key=True)
-    imo_number: Mapped[str] = mapped_column("ImoNumber", String(20), unique=True, index=True)
-    vessel_name: Mapped[str] = mapped_column("VesselName", String(160), index=True)
-    vessel_type: Mapped[str] = mapped_column("VesselType", String(80))
-    flag_country_key: Mapped[int | None] = mapped_column("FlagCountryKey", Integer)
-    deadweight_tons: Mapped[float | None] = mapped_column("DeadweightTons", Numeric(18, 2))
+    __tablename__ = "dimension_Disruption_Event"
+    __table_args__ = {"schema": SCHEMA}
+    eventid: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    eventname: Mapped[str | None] = mapped_column(String(250))
+    eventtype: Mapped[str | None] = mapped_column(String(50))
+    severitytext: Mapped[str | None] = mapped_column(String(300))
+    alertlevel: Mapped[str | None] = mapped_column(String(50))
+    fromdate: Mapped[datetime | None] = mapped_column(DateTime)
+    todate: Mapped[datetime | None] = mapped_column(DateTime)
+    year: Mapped[int | None] = mapped_column(SmallInteger)
+    htmlname: Mapped[str | None] = mapped_column(String(300))
+    htmldescription: Mapped[str | None] = mapped_column(Text)
 
 
-class TradeRoute(Base):
-    __tablename__ = "DimTradeRoute"
+class FactClimateRisk(Base):
+    __tablename__ = "Fact_Climate_Risk"
+    __table_args__ = {"schema": SCHEMA}
+    key: Mapped[int] = mapped_column("ClimateRiskKey", BigInteger, primary_key=True)
+    portid: Mapped[str | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"))
+    scenario: Mapped[str | None] = mapped_column(String(100))
+    unit: Mapped[str | None] = mapped_column(String(100))
+    measure: Mapped[str | None] = mapped_column(String(200))
+    hazard: Mapped[str | None] = mapped_column(String(200))
+    value: Mapped[Decimal | None] = mapped_column(Numeric(38, 10))
+    port: Mapped[Port | None] = relationship()
 
-    trade_route_key: Mapped[int] = mapped_column("TradeRouteKey", Integer, primary_key=True)
-    route_code: Mapped[str] = mapped_column("RouteCode", String(60), unique=True)
-    origin_port_key: Mapped[int] = mapped_column("OriginPortKey", Integer)
-    destination_port_key: Mapped[int] = mapped_column("DestinationPortKey", Integer)
-    primary_chokepoint_key: Mapped[int | None] = mapped_column("PrimaryChokepointKey", Integer)
-    route_name: Mapped[str] = mapped_column("RouteName", String(180))
 
-
-class EtlRun(Base):
-    __tablename__ = "EtlRun"
-
-    etl_run_key: Mapped[int] = mapped_column("EtlRunKey", Integer, primary_key=True)
-    source_system: Mapped[str] = mapped_column("SourceSystem", String(120))
-    layer_name: Mapped[str] = mapped_column("LayerName", String(40))
-    status: Mapped[str] = mapped_column("Status", String(40))
-    started_at: Mapped[datetime] = mapped_column("StartedAt", DateTime)
-    ended_at: Mapped[datetime | None] = mapped_column("EndedAt", DateTime)
+class FactDailyChokepoint(Base):
+    __tablename__ = "fact_Daily_Chockpoints"
+    __table_args__ = {"schema": SCHEMA}
+    date: Mapped[date] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Date.date"), primary_key=True)
+    portid: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_ChockPoints.portid"), primary_key=True)
+    n_total: Mapped[int | None] = mapped_column(BigInteger)
+    capacity: Mapped[int | None] = mapped_column(BigInteger)
+    n_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    n_container: Mapped[int | None] = mapped_column(BigInteger)
+    n_dry_bulk: Mapped[int | None] = mapped_column(BigInteger)
+    n_general_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    n_roro: Mapped[int | None] = mapped_column(BigInteger)
+    n_tanker: Mapped[int | None] = mapped_column(BigInteger)
+    capacity_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    capacity_container: Mapped[int | None] = mapped_column(BigInteger)
+    capacity_dry_bulk: Mapped[int | None] = mapped_column(BigInteger)
+    capacity_general_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    capacity_roro: Mapped[int | None] = mapped_column(BigInteger)
+    capacity_tanker: Mapped[int | None] = mapped_column(BigInteger)
+    date_dimension: Mapped[DateDimension] = relationship()
+    chokepoint: Mapped[Chokepoint] = relationship()
 
 
 class FactDailyPort(Base):
-    __tablename__ = "FactDailyPorts"
+    __tablename__ = "fact_Daily_Ports"
+    __table_args__ = {"schema": SCHEMA}
+    date: Mapped[date] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Date.date"), primary_key=True)
+    portid: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"), primary_key=True)
+    iso3: Mapped[str] = mapped_column("ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"), primary_key=True)
+    portcalls: Mapped[int | None] = mapped_column(BigInteger)
+    portcalls_general_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    portcalls_dry_bulk: Mapped[int | None] = mapped_column(BigInteger)
+    portcalls_container: Mapped[int | None] = mapped_column(BigInteger)
+    portcalls_roro: Mapped[int | None] = mapped_column(BigInteger)
+    portcalls_tanker: Mapped[int | None] = mapped_column(BigInteger)
+    portcalls_cargo: Mapped[int | None] = mapped_column(BigInteger)
+    imports: Mapped[int | None] = mapped_column("import", BigInteger)
+    exports: Mapped[int | None] = mapped_column("export", BigInteger)
+    data_source: Mapped[str | None] = mapped_column("DataSource", String(100))
+    date_dimension: Mapped[DateDimension] = relationship()
+    port: Mapped[Port] = relationship()
+    country: Mapped[Country] = relationship()
 
-    fact_daily_port_key: Mapped[int] = mapped_column("FactDailyPortKey", Integer, primary_key=True)
-    date_key: Mapped[int] = mapped_column("DateKey", Integer, index=True)
-    port_key: Mapped[int] = mapped_column("PortKey", ForeignKey("DimPort.PortKey"), index=True)
-    vessel_count: Mapped[int] = mapped_column("VesselCount", Integer)
-    import_tonnage: Mapped[float] = mapped_column("ImportTonnage", Numeric(18, 2))
-    export_tonnage: Mapped[float] = mapped_column("ExportTonnage", Numeric(18, 2))
-    trade_value_usd: Mapped[float] = mapped_column("TradeValueUsd", Numeric(19, 2))
-    waiting_hours: Mapped[float] = mapped_column("WaitingHours", Numeric(10, 2))
-    risk_score: Mapped[float] = mapped_column("RiskScore", Numeric(5, 2))
 
-
-class FactDailyCongestion(Base):
-    __tablename__ = "FactDailyCongestion"
-
-    fact_daily_congestion_key: Mapped[int] = mapped_column("FactDailyCongestionKey", Integer, primary_key=True)
-    date_key: Mapped[int] = mapped_column("DateKey", Integer, index=True)
-    port_key: Mapped[int] = mapped_column("PortKey", Integer, index=True)
-    queue_vessels: Mapped[int] = mapped_column("QueueVessels", Integer)
-    median_waiting_hours: Mapped[float] = mapped_column("MedianWaitingHours", Numeric(10, 2))
-    congestion_score: Mapped[float] = mapped_column("CongestionScore", Numeric(5, 2))
+class FactDisruption(Base):
+    __tablename__ = "fact_Disruptions"
+    __table_args__ = {"schema": SCHEMA}
+    key: Mapped[int] = mapped_column("DisruptionRiskFactKey", BigInteger, primary_key=True)
+    eventid: Mapped[int | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Disruption_Event.eventid"))
+    portid: Mapped[str | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"))
+    iso3: Mapped[str | None] = mapped_column("ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"))
+    scenario: Mapped[str | None] = mapped_column(String(100))
+    affectedports: Mapped[str | None] = mapped_column(Text)
+    n_affectedports: Mapped[int | None] = mapped_column(BigInteger)
+    distance_km: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    value: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    portshare: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    fromdate: Mapped[date | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Date.date"))
+    todate: Mapped[date | None] = mapped_column(Date)
+    event: Mapped[DisruptionEvent | None] = relationship()
+    port: Mapped[Port | None] = relationship()
+    country: Mapped[Country | None] = relationship()
+    start_date: Mapped[DateDimension | None] = relationship()
 
 
 class FactMonthlyTrade(Base):
-    __tablename__ = "FactMonthlyTrade"
+    __tablename__ = "fact_Monthly_Trade"
+    __table_args__ = {"schema": SCHEMA}
+    date: Mapped[date] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Date.date"), primary_key=True)
+    region: Mapped[str] = mapped_column(String(150), primary_key=True)
+    iso3: Mapped[str | None] = mapped_column("ISO3", String(3))
+    trade_value: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    trade_volume: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    value_import_total: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    value_export_total: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    volume_import_total: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    volume_export_total: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    date_dimension: Mapped[DateDimension] = relationship()
 
-    fact_monthly_trade_key: Mapped[int] = mapped_column("FactMonthlyTradeKey", Integer, primary_key=True)
-    date_key: Mapped[int] = mapped_column("DateKey", Integer, index=True)
-    origin_country_key: Mapped[int] = mapped_column("OriginCountryKey", Integer)
-    destination_country_key: Mapped[int] = mapped_column("DestinationCountryKey", Integer)
-    industry_key: Mapped[int] = mapped_column("IndustryKey", Integer)
-    commodity: Mapped[str] = mapped_column("Commodity", String(120))
-    trade_value_usd: Mapped[float] = mapped_column("TradeValueUsd", Numeric(19, 2))
-    trade_volume_tons: Mapped[float] = mapped_column("TradeVolumeTons", Numeric(18, 2))
+
+class FactSpilloverCountry(Base):
+    __tablename__ = "Fact_Spillover_Country"
+    __table_args__ = {"schema": SCHEMA}
+    from_iso3: Mapped[str] = mapped_column("from_ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"), primary_key=True)
+    to_iso3: Mapped[str] = mapped_column("to_ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"), primary_key=True)
+    from_country: Mapped[str | None] = mapped_column(String(150))
+    to_country: Mapped[str | None] = mapped_column(String(150))
+    industry: Mapped[str] = mapped_column(String(200), primary_key=True)
+    daily_import_value_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    daily_export_value_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    source_country: Mapped[Country] = relationship(foreign_keys=[from_iso3])
+    destination_country: Mapped[Country] = relationship(foreign_keys=[to_iso3])
 
 
-class FactTradeFlow(Base):
-    __tablename__ = "FactTradeFlow"
+class FactSpilloverPort(Base):
+    __tablename__ = "Fact_Spillover_Port"
+    __table_args__ = {"schema": SCHEMA}
+    from_portid: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"), primary_key=True)
+    to_portid: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"), primary_key=True)
+    from_portname: Mapped[str | None] = mapped_column(String(200))
+    to_portname: Mapped[str | None] = mapped_column(String(200))
+    from_country: Mapped[str | None] = mapped_column(String(150))
+    to_country: Mapped[str | None] = mapped_column(String(150))
+    from_iso3: Mapped[str | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"))
+    to_iso3: Mapped[str | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"))
+    from_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    from_lon: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    to_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    to_lon: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    average_transit_days: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    daily_capacity_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    relative_capacity_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    source_port: Mapped[Port] = relationship(foreign_keys=[from_portid])
+    destination_port: Mapped[Port] = relationship(foreign_keys=[to_portid])
+    source_country: Mapped[Country | None] = relationship(foreign_keys=[from_iso3])
+    destination_country: Mapped[Country | None] = relationship(foreign_keys=[to_iso3])
 
-    fact_trade_flow_key: Mapped[int] = mapped_column("FactTradeFlowKey", Integer, primary_key=True)
-    date_key: Mapped[int] = mapped_column("DateKey", Integer, index=True)
-    trade_route_key: Mapped[int] = mapped_column("TradeRouteKey", Integer, index=True)
-    vessel_key: Mapped[int | None] = mapped_column("VesselKey", Integer)
-    cargo_value_usd: Mapped[float] = mapped_column("CargoValueUsd", Numeric(19, 2))
-    cargo_volume_tons: Mapped[float] = mapped_column("CargoVolumeTons", Numeric(18, 2))
-    risk_score: Mapped[float] = mapped_column("RiskScore", Numeric(5, 2))
+
+class FactSpilloverSupply(Base):
+    __tablename__ = "Fact_Spillover_Supply"
+    __table_args__ = {"schema": SCHEMA}
+    from_portid: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"), primary_key=True)
+    to_iso3: Mapped[str] = mapped_column("to_ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"), primary_key=True)
+    industry: Mapped[str] = mapped_column(String(200), primary_key=True)
+    daily_consumption_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    daily_industryoutput_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(28, 6))
+    source_port: Mapped[Port] = relationship()
+    destination_country: Mapped[Country] = relationship()
+
+
+class FactTradeRisk(Base):
+    __tablename__ = "Fact_Trade_Risk"
+    __table_args__ = {"schema": SCHEMA}
+    key: Mapped[int] = mapped_column("TradeRiskKey", BigInteger, primary_key=True)
+    from_iso3: Mapped[str | None] = mapped_column("from_ISO3", ForeignKey(f"{SCHEMA}.dimension_Country.ISO3"))
+    to_portid: Mapped[str | None] = mapped_column(ForeignKey(f"{SCHEMA}.dimension_Ports.portid"))
+    scenario: Mapped[str | None] = mapped_column(String(100))
+    flow: Mapped[str | None] = mapped_column(String(100))
+    industry: Mapped[str | None] = mapped_column(String(200))
+    days_downtime_at_port: Mapped[Decimal | None] = mapped_column(Numeric(38, 10))
+    trade_value_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(38, 10))
+    unit: Mapped[str | None] = mapped_column(String(100))
+    source_country: Mapped[Country | None] = relationship()
+    destination_port: Mapped[Port | None] = relationship()

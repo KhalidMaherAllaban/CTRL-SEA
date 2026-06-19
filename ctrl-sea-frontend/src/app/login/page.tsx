@@ -3,20 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Github, Loader2, LockKeyhole, Mail, Radar, ShieldCheck } from "lucide-react";
 import { CtrlSeaLogo } from "@/components/branding/ctrl-sea-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ApiError, getSocialAuthUrl } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-
-const kpis = [
-  { value: 94382, label: "Active Vessels", suffix: "" },
-  { value: 672, label: "Ports", suffix: "" },
-  { value: 18, label: "Strategic Chokepoints", suffix: "" },
-  { value: 18.7, label: "Maritime Trade", prefix: "$", suffix: "T" }
-];
 
 const trust = ["Enterprise Security", "Role-Based Access Control", "Secure Authentication", "Encrypted Sessions", "GDPR Ready"];
 
@@ -24,11 +17,14 @@ type Provider = "google" | "microsoft" | "github";
 
 export default function LoginPage() {
   const router = useRouter();
+<<<<<<< HEAD
   const { login, register, enterDemo, user } = useAuth();
+=======
+  const { login, register } = useAuth();
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<Provider | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
 
@@ -108,9 +104,8 @@ export default function LoginPage() {
         if (name.length < 2) throw new Error("Enter your full name.");
         await register(name, email, password);
       } else {
-        await login(email, password);
+        await login(email, password, remember);
       }
-      if (!remember) sessionStorage.setItem("ctrl-sea-session-only", "true");
       router.push("/dashboard");
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
@@ -121,6 +116,7 @@ export default function LoginPage() {
     }
   }
 
+<<<<<<< HEAD
   /* eslint-disable @typescript-eslint/no-unused-vars */
   function startSocial(provider: Provider) {
     setError("");
@@ -129,6 +125,8 @@ export default function LoginPage() {
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
 
+=======
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
   return (
     <main className="min-h-screen overflow-hidden bg-[#03152D] text-slate-100">
       <div className="pointer-events-none fixed inset-0 maritime-grid opacity-40" />
@@ -152,10 +150,8 @@ export default function LoginPage() {
 
           <MaritimeVisual />
 
-          <div className="relative z-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {kpis.map((kpi) => (
-              <KpiCounter key={kpi.label} {...kpi} />
-            ))}
+          <div className="relative z-10 rounded-md border border-cyan-300/15 bg-slate-950/55 p-4 text-sm text-cyan-100 backdrop-blur-xl">
+            Live intelligence is sourced from the ITI Graduation PortWatch warehouse.
           </div>
         </aside>
 
@@ -172,9 +168,15 @@ export default function LoginPage() {
 
             <div className="rounded-lg border border-cyan-300/15 bg-slate-950/55 p-5 shadow-[0_24px_90px_rgba(0,0,0,.44)] backdrop-blur-2xl sm:p-7">
               <div className="grid gap-3">
+<<<<<<< HEAD
                 <SocialButton provider="google" loading={socialLoading === "google"} onClick={handleGoogleLoginMock} />
                 <SocialButton provider="microsoft" loading={socialLoading === "microsoft"} onClick={() => startSocial("microsoft")} />
                 <SocialButton provider="github" loading={socialLoading === "github"} onClick={() => startSocial("github")} />
+=======
+                <SocialButton provider="google" />
+                <SocialButton provider="microsoft" />
+                <SocialButton provider="github" />
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
               </div>
 
               <div className="my-7 flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
@@ -215,7 +217,7 @@ export default function LoginPage() {
                     <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="h-4 w-4 rounded border-cyan-300/25 bg-slate-950 accent-[#30D5FF]" />
                     Remember Me
                   </label>
-                  <button type="button" className="text-cyan-200 transition hover:text-cyan-100">Forgot Password?</button>
+                  <span className="cursor-not-allowed text-slate-500" title="Password recovery is not configured">Password Recovery Coming Soon</span>
                 </div>
 
                 {error && (
@@ -224,14 +226,17 @@ export default function LoginPage() {
                   </p>
                 )}
 
-                <Button disabled={loading || Boolean(socialLoading)} className="h-12 w-full border-[#30D5FF]/40 bg-[#30D5FF]/18 text-base font-semibold text-cyan-50 hover:bg-[#30D5FF]/28">
+                <Button disabled={loading} className="h-12 w-full border-[#30D5FF]/40 bg-[#30D5FF]/18 text-base font-semibold text-cyan-50 hover:bg-[#30D5FF]/28">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight size={18} />}
                   {mode === "login" ? "Sign In" : "Create Account"}
                 </Button>
 
+<<<<<<< HEAD
                 <Button type="button" onClick={() => enterDemo()} className="h-12 w-full border-[#D6A85F]/35 bg-[#D6A85F]/12 text-[#F8E0AD] hover:bg-[#D6A85F]/20">
                   Explore Demo Dashboard
                 </Button>
+=======
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
               </form>
             </div>
 
@@ -250,32 +255,7 @@ export default function LoginPage() {
   );
 }
 
-function KpiCounter({ value, label, prefix = "", suffix = "" }: { value: number; label: string; prefix?: string; suffix?: string }) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let frame = 0;
-    const total = 42;
-    const timer = window.setInterval(() => {
-      frame += 1;
-      const progress = 1 - Math.pow(1 - frame / total, 3);
-      setCount(value * Math.min(progress, 1));
-      if (frame >= total) window.clearInterval(timer);
-    }, 24);
-    return () => window.clearInterval(timer);
-  }, [value]);
-
-  const display = value % 1 === 0 ? Math.round(count).toLocaleString() : count.toFixed(1);
-
-  return (
-    <div className="rounded-md border border-cyan-300/15 bg-slate-950/55 p-4 shadow-[0_14px_44px_rgba(0,0,0,.28)] backdrop-blur-xl">
-      <p className="text-2xl font-black text-white">{prefix}{display}{suffix}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-cyan-100/62">{label}</p>
-    </div>
-  );
-}
-
-function SocialButton({ provider, loading, onClick }: { provider: Provider; loading: boolean; onClick: () => void }) {
+function SocialButton({ provider }: { provider: Provider }) {
   const labels = {
     google: "Google",
     microsoft: "Microsoft",
@@ -285,12 +265,11 @@ function SocialButton({ provider, loading, onClick }: { provider: Provider; load
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={loading}
-      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-sm font-medium text-slate-100 transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:opacity-60"
+      disabled
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-sm font-medium text-slate-400 opacity-70"
     >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ProviderIcon provider={provider} />}
-      <span>Continue with {labels[provider]}</span>
+      <ProviderIcon provider={provider} />
+      <span>{labels[provider]} Coming Soon</span>
     </button>
   );
 }

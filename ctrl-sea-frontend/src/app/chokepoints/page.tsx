@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { BarPanel, GaugeCard, LinePanel } from "@/components/charts/analytics-charts";
 import { Card, CardTitle } from "@/components/ui/card";
 import { endpoints } from "@/lib/api";
-import { formatUsd } from "@/lib/utils";
+import { formatMetric } from "@/lib/utils";
 import type { Chokepoint } from "@/lib/types";
 
 type ChokepointInsight = Chokepoint & {
@@ -25,11 +25,11 @@ export default function ChokepointsPage() {
       <div className="mt-4 grid gap-4 xl:grid-cols-3">
         {data && <BarPanel title="Daily Vessel Transits" data={data.transits} />}
         {data && <BarPanel title="Chokepoint Risk Index" data={data.risk} yKey="risk" />}
-        {data && <BarPanel title="Trade Impact (USD B)" data={data.trade_impact} />}
+        {data && <BarPanel title="Recent Transit Capacity" data={data.trade_impact} />}
       </div>
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         {data && <BarPanel title="Congestion Pressure" data={data.congestion} />}
-        {data && <LinePanel title="Historical Risk Trend" data={data.history} yKey="SUEZ" />}
+        {data && <LinePanel title="Historical Traffic Trend" data={data.history} yKey="value" />}
       </div>
       <Card className="mt-4">
         <CardTitle>Strategic Corridor Brief</CardTitle>
@@ -43,7 +43,7 @@ export default function ChokepointsPage() {
                   <td>{item.region}</td>
                   <td>{item.vessel_transits}</td>
                   <td>{item.congestion}%</td>
-                  <td className="text-cyan-100">{formatUsd(item.trade_impact_usd)}</td>
+                  <td className="text-cyan-100">{formatMetric(item.trade_impact_usd)}</td>
                   <td className="text-[#D6A85F]">{item.risk_score}</td>
                 </tr>
               ))}

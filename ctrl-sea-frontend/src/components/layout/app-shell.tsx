@@ -4,7 +4,11 @@ import Link from "next/link";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+<<<<<<< HEAD
 import { BarChart3, CloudLightning, Command, Database, FileText, Globe2, LayoutDashboard, Lock, Map, RadioTower, Ship, ShieldAlert, TrendingUp } from "lucide-react";
+=======
+import { BarChart3, CloudLightning, Command, Database, FileText, Globe2, LayoutDashboard, Lock, Map, RadioTower, Search, Ship, ShieldAlert, TrendingUp, Users } from "lucide-react";
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
 import { CtrlSeaLogo } from "@/components/branding/ctrl-sea-logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -29,12 +33,15 @@ const nav: Array<{ href: Route; label: string; icon: typeof LayoutDashboard }> =
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isDemo, isReady, logout } = useAuth();
+  const { user, isReady, logout } = useAuth();
 
   useEffect(() => {
-    if (isReady && !user && !isDemo) router.replace("/login");
-    if (isReady && isDemo && pathname === "/admin") router.replace("/dashboard");
-  }, [isDemo, isReady, pathname, router, user]);
+    if (isReady && !user) router.replace("/login");
+  }, [isReady, router, user]);
+
+  useEffect(() => {
+    if (isReady && user && pathname.startsWith("/admin") && user.role !== "admin") router.replace("/dashboard");
+  }, [isReady, pathname, router, user]);
 
   useEffect(() => {
     const titles: Record<string, string> = {
@@ -51,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.title = titles[pathname] ?? "CTRL SEA | Maritime Intelligence Platform";
   }, [pathname]);
 
-  if (!isReady || (!user && !isDemo)) {
+  if (!isReady || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-radial-ocean text-cyan-200">
         <div className="text-center">
@@ -70,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <CtrlSeaLogo variant="full" className="flex-col gap-3 text-center" />
         </Link>
         <nav className="mt-8 space-y-1">
-          {nav.map((item) => {
+          {nav.filter((item) => item.href !== "/admin" || user.role === "admin").map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
@@ -94,6 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+<<<<<<< HEAD
             <button
               type="button"
               title="DataSource"
@@ -103,16 +111,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Command size={14} /> DataSource
             </button>
             
+=======
+            <button type="button" disabled title="Command center is coming soon" className="hidden h-9 cursor-not-allowed items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-500 md:flex">
+              <Command size={14} /> Command Soon
+            </button>
+            <div className="hidden h-9 items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-400 xl:flex">
+              <Search size={14} /> Search ports, vessels, countries
+            </div>
+            <div className="hidden items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 py-2 text-xs text-slate-300 md:flex">
+              <Users size={14} /> {user.full_name}
+            </div>
+>>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
             <Button onClick={logout} className="h-9 px-3">
               <Lock size={15} /> Logout
             </Button>
           </div>
         </header>
-        {isDemo && (
-          <div className="border-b border-[#D6A85F]/25 bg-[#D6A85F]/10 px-5 py-2 text-center text-xs font-semibold uppercase tracking-[0.22em] text-[#D6A85F]">
-            Demo Mode - Read Only Access
-          </div>
-        )}
         <div className="p-5 lg:p-8">{children}</div>
         {/* Floating Ask-Ai button (bottom-right) */}
         <button

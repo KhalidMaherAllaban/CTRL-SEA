@@ -29,8 +29,10 @@ export default function AdminPage() {
         <Card>
           <Play className="text-cyan-200" />
           <CardTitle className="mt-4">ETL Jobs</CardTitle>
-          <Button onClick={() => etl.mutate()} className="mt-4">Trigger ETL</Button>
+          <Button disabled={!architecture.data?.etl_available || etl.isPending} onClick={() => etl.mutate()} className="mt-4">{architecture.data?.etl_available ? "Trigger ETL" : "External ETL"}</Button>
           {etl.data && <p className="mt-3 text-sm text-emerald-300">{etl.data.status}: {etl.data.jobId}</p>}
+          {etl.error && <p className="mt-3 text-sm text-rose-300">The ETL orchestrator is unavailable.</p>}
+          {architecture.data && !architecture.data.etl_available && <p className="mt-3 text-sm text-slate-400">Warehouse refreshes are managed outside CTRL SEA.</p>}
         </Card>
       </div>
       <Card className="mt-4">
