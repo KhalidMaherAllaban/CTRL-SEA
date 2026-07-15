@@ -22,7 +22,12 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     logger.info("Starting CTRL SEA API environment=%s database_configured=%s cors_origins=%s", settings.environment, bool(settings.database_url), settings.cors_origin_list)
-    initialize_database(settings)
+    try:
+        initialize_database(settings)
+    except Exception:
+        logger.exception("CTRL SEA API startup validation failed")
+        raise
+    logger.info("CTRL SEA API startup validation complete")
     yield
 
 app = FastAPI(
@@ -69,10 +74,11 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
 
 
 @app.get("/health")
+@app.get("/api/health", include_in_schema=False)
 def health() -> dict:
     with engine.connect() as connection:
         connection.exec_driver_sql("SELECT 1")
-    return {"status": "ok", "service": "ctrl-sea-api", "database": "connected"}
+    return {"status": "healthy", "service": "ctrl-sea-api", "database": "connected"}
 
 
 app.include_router(api_router)

@@ -10,15 +10,24 @@ __pycache__/
 out/
 dist/
 build/
+coverage/
+.turbo/
+.vercel/
+.netlify/
 *.tsbuildinfo
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
 
 # Local environment and secrets
 .env
 .env.*
 !.env.example
+!.env.compose.example
+!ctrl-sea-frontend/.env.example
+!ctrl-sea-backend/.env.example
 *.local
 
 # Local databases and runtime state
@@ -26,10 +35,13 @@ build/
 *.sqlite
 *.sqlite3
 *.log
+logs/
 preview-url.txt
 preview-watch.log
 .tools/
+.runtime/
 .edge-shot-profile*/
+*.pid
 
 # OS/editor
 .DS_Store
@@ -42,3 +54,6 @@ screenshots/*.png
 screenshots/*.jpg
 screenshots/*.jpeg
 screenshots/*.webp
+*.tmp
+*.temp
+*.pbix

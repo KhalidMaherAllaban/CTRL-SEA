@@ -25,7 +25,14 @@ def test_health_endpoint() -> None:
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    assert response.json()["status"] == "healthy"
+
+
+def test_proxied_health_endpoint() -> None:
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    assert response.json()["database"] == "connected"
 
 
 def test_warehouse_endpoints_require_authentication() -> None:
@@ -68,6 +75,12 @@ def test_spillover_accepts_warehouse_identifiers(warehouse_client: TestClient) -
 
     assert response.status_code == 200
     assert response.json()["affected_countries"]
+
+    alias_response = warehouse_client.post(
+        "/api/spillover",
+        json={"port": port["port_code"], "country": country["iso3"], "industry": "", "scenario": "present"},
+    )
+    assert alias_response.status_code == 200
 
 
 def test_auth_register_login_refresh_and_me_cookie_flow() -> None:

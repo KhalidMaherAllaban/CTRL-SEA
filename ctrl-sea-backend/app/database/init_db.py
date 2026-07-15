@@ -1,3 +1,5 @@
+import time
+
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -39,20 +41,34 @@ def seed_admin(settings: Settings) -> None:
         )
         db.add(user)
         db.commit()
-        logger.info("Seeded development admin user: %s", settings.seed_admin_email)
+        logger.info("Seeded development admin user_id=%s", user.id)
 
 
-def validate_database() -> None:
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        logger.info("Database connection validated")
-    except SQLAlchemyError:
-        logger.exception("Database connection validation failed")
-        raise
+def validate_database(settings: Settings) -> None:
+    """Wait for SQL Server and validate the configured database connection."""
+    for attempt in range(1, settings.startup_max_attempts + 1):
+        try:
+            with engine.connect() as conn:
+                version = conn.execute(text("SELECT CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR(50))")).scalar_one()
+                conn.execute(text("SELECT 1"))
+            logger.info("SQL Server connection validated version=%s attempt=%s", version, attempt)
+            return
+        except SQLAlchemyError:
+            logger.exception(
+                "SQL Server startup validation failed attempt=%s max_attempts=%s retry_seconds=%s",
+                attempt,
+                settings.startup_max_attempts,
+                settings.startup_retry_seconds,
+            )
+            if attempt == settings.startup_max_attempts:
+                raise RuntimeError(
+                    "SQL Server is unavailable after startup retries. Check DATABASE_URL, the SQL Server service, "
+                    "ODBC Driver 18, and .runtime/backend.err.log."
+                )
+            time.sleep(settings.startup_retry_seconds)
 
 
 def initialize_database(settings: Settings) -> None:
-    validate_database()
+    validate_database(settings)
     create_tables()
     seed_admin(settings)

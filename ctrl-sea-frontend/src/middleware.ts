@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const protectedPrefixes = [
   "/admin",
+  "/ai",
+  "/analytics",
   "/chokepoints",
   "/climate-risk",
   "/countries",
@@ -12,14 +14,18 @@ const protectedPrefixes = [
   "/reports",
   "/risk-center",
   "/spillover",
-  "/trade-flows",
   "/trade-risk",
 ];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = Boolean(request.cookies.get("ctrl_sea_access")?.value || request.cookies.get("ctrl_sea_refresh")?.value);
+  const isReportAsset = pathname.startsWith("/reports/") && /\.[a-z0-9]+$/i.test(pathname);
   const isProtected = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
+  if (isReportAsset) {
+    return NextResponse.next();
+  }
 
   if (isProtected && !hasSession) {
     const loginUrl = new URL("/login", request.url);
@@ -37,6 +43,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*",
+    "/ai/:path*",
+    "/analytics/:path*",
     "/chokepoints/:path*",
     "/climate-risk/:path*",
     "/countries/:path*",
@@ -48,7 +56,6 @@ export const config = {
     "/reports/:path*",
     "/risk-center/:path*",
     "/spillover/:path*",
-    "/trade-flows/:path*",
     "/trade-risk/:path*",
   ],
 };

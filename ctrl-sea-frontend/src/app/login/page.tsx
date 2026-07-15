@@ -2,80 +2,66 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Github, Loader2, LockKeyhole, Mail, Radar, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Github, Loader2, LockKeyhole, Mail } from "lucide-react";
 import { CtrlSeaLogo } from "@/components/branding/ctrl-sea-logo";
+import { MapLoader } from "@/components/login-globe/MapLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ApiError } from "@/lib/api";
+import { ApiError, getSocialAuthUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const trust = ["Enterprise Security", "Role-Based Access Control", "Secure Authentication", "Encrypted Sessions", "GDPR Ready"];
+const appRoutes = new Set([
+  "/admin",
+  "/ai",
+  "/analytics",
+  "/chokepoints",
+  "/climate-risk",
+  "/countries",
+  "/dashboard",
+  "/disruptions",
+  "/map",
+  "/ports",
+  "/reports",
+  "/risk-center",
+  "/spillover",
+  "/trade-risk"
+]);
+const googleAuthErrors: Record<string, string> = {
+  disabled: "This account is disabled. Contact your CTRL SEA administrator.",
+  google_denied: "Google sign-in was cancelled.",
+  google_failed: "Google sign-in failed. Please try again.",
+  google_not_configured: "Google sign-in is not configured yet. Add the Google OAuth client ID and secret on the backend."
+};
 
 type Provider = "google" | "microsoft" | "github";
 
 export default function LoginPage() {
   const router = useRouter();
-<<<<<<< HEAD
-  const { login, register, enterDemo, user } = useAuth();
-=======
+  const searchParams = useSearchParams();
   const { login, register } = useAuth();
->>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<Provider | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
+  const authError = searchParams.get("auth_error");
+  const displayedError = error || (authError ? googleAuthErrors[authError] ?? "Authentication failed. Please try again." : "");
 
-  const handleGoogleLoginDynamic = async (currentUser: { email: string; name: string }) => {
-    const n8nWebhookUrl = "https://adwshtheflame.app.n8n.cloud/webhook-test/google-login-welcome";
+  function nextPath() {
+    const next = searchParams.get("next");
+    return next && appRoutes.has(next) ? next : "/dashboard";
+  }
 
-    try {
-      await fetch(n8nWebhookUrl, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          email: currentUser.email, 
-          name: currentUser.name   
-        }),
-      });
-      console.log(`Welcome email workflow triggered successfully for: ${currentUser.email}`);
-    } catch (error) {
-      console.error("Network Error triggering n8n:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (user && user.email) {
-      const userData = user as any;
-      
-      handleGoogleLoginDynamic({
-        email: userData.email,
-        name: userData.name || userData.displayName || "Mariners Analyst"
-      });
-
-      if (typeof enterDemo === "function") {
-        (enterDemo as (role?: string) => void)("analyst");
-      }
-      router.push("/dashboard");
-    }
-  }, [user]);
-
-  const handleGoogleLoginMock = async () => {
-    await handleGoogleLoginDynamic({
-      email: "mohamedadwsh@gmail.com", 
-      name: "Mohamed"
-    });
-    if (typeof enterDemo === "function") {
-      (enterDemo as (role?: string) => void)("analyst");
-    }
-    router.push("/dashboard");
-  };
+  function startGoogleLogin() {
+    setError("");
+    setSocialLoading("google");
+    window.location.assign(getSocialAuthUrl("google", nextPath()));
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -106,7 +92,7 @@ export default function LoginPage() {
       } else {
         await login(email, password, remember);
       }
-      router.push("/dashboard");
+      router.push(nextPath() as Route);
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
       else if (err instanceof Error) setError(err.message);
@@ -116,25 +102,16 @@ export default function LoginPage() {
     }
   }
 
-<<<<<<< HEAD
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  function startSocial(provider: Provider) {
-    setError("");
-    setSocialLoading(provider);
-    window.location.href = getSocialAuthUrl(provider);
-  }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
-
-=======
->>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
   return (
     <main className="min-h-screen overflow-hidden bg-[#03152D] text-slate-100">
       <div className="pointer-events-none fixed inset-0 maritime-grid opacity-40" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(48,213,255,.18),transparent_30%),radial-gradient(circle_at_76%_18%,rgba(214,168,95,.13),transparent_25%),linear-gradient(135deg,#03152D_0%,#020617_62%,#082D56_120%)]" />
 
-      <section className="relative z-10 grid min-h-screen lg:grid-cols-[1.05fr_.95fr]">
-        <aside className="relative flex min-h-[48rem] min-w-0 flex-col justify-between overflow-hidden border-cyan-300/10 p-6 sm:p-8 lg:border-r xl:p-12">
-          <div className="relative z-10">
+      <section className="relative z-10 grid min-h-screen lg:grid-cols-[1.08fr_.92fr]">
+        <aside className="relative hidden min-h-screen min-w-0 overflow-hidden border-cyan-300/10 bg-[#020617] lg:block lg:border-r">
+          <MapLoader />
+          <div className="pointer-events-none absolute inset-0 maritime-grid opacity-20" />
+          <div className="relative z-10 flex min-h-screen flex-col justify-between p-8 xl:p-12">
             <Link href="/" className="inline-flex">
               <CtrlSeaLogo variant="responsive" />
             </Link>
@@ -143,19 +120,18 @@ export default function LoginPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6A85F]">Maritime Intelligence Platform</p>
               <h1 className="mt-4 text-5xl font-black leading-[1.02] text-white sm:text-6xl xl:text-7xl">CTRL SEA</h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-cyan-50/78 sm:text-xl">
-                Monitor global trade, vessel activity, port congestion, and maritime risks in real time.
+                Enter a global maritime command layer powered by Esri ArcGIS, warehouse intelligence, and risk analytics.
               </p>
             </div>
-          </div>
 
-          <MaritimeVisual />
-
-          <div className="relative z-10 rounded-md border border-cyan-300/15 bg-slate-950/55 p-4 text-sm text-cyan-100 backdrop-blur-xl">
-            Live intelligence is sourced from the ITI Graduation PortWatch warehouse.
+            <div className="rounded-md border border-cyan-300/15 bg-slate-950/55 p-4 text-sm text-cyan-100 shadow-[0_0_80px_rgba(48,213,255,.15)] backdrop-blur-xl">
+              Live maritime visualization powered by Esri ArcGIS and CTRL SEA PortWatch warehouse data.
+            </div>
           </div>
         </aside>
 
-        <section className="flex min-w-0 items-center justify-center px-6 py-10 sm:px-8 xl:px-14">
+        <section className="relative flex min-w-0 items-center justify-center px-6 py-10 sm:px-8 xl:px-14">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(48,213,255,.12),transparent_34%)] lg:hidden" />
           <div className="w-full min-w-0 max-w-xl">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
@@ -168,15 +144,9 @@ export default function LoginPage() {
 
             <div className="rounded-lg border border-cyan-300/15 bg-slate-950/55 p-5 shadow-[0_24px_90px_rgba(0,0,0,.44)] backdrop-blur-2xl sm:p-7">
               <div className="grid gap-3">
-<<<<<<< HEAD
-                <SocialButton provider="google" loading={socialLoading === "google"} onClick={handleGoogleLoginMock} />
-                <SocialButton provider="microsoft" loading={socialLoading === "microsoft"} onClick={() => startSocial("microsoft")} />
-                <SocialButton provider="github" loading={socialLoading === "github"} onClick={() => startSocial("github")} />
-=======
-                <SocialButton provider="google" />
+                <SocialButton provider="google" loading={socialLoading === "google"} onClick={startGoogleLogin} />
                 <SocialButton provider="microsoft" />
                 <SocialButton provider="github" />
->>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
               </div>
 
               <div className="my-7 flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
@@ -220,9 +190,9 @@ export default function LoginPage() {
                   <span className="cursor-not-allowed text-slate-500" title="Password recovery is not configured">Password Recovery Coming Soon</span>
                 </div>
 
-                {error && (
+                {displayedError && (
                   <p role="alert" className="rounded-md border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                    {error}
+                    {displayedError}
                   </p>
                 )}
 
@@ -230,14 +200,11 @@ export default function LoginPage() {
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight size={18} />}
                   {mode === "login" ? "Sign In" : "Create Account"}
                 </Button>
-
-<<<<<<< HEAD
-                <Button type="button" onClick={() => enterDemo()} className="h-12 w-full border-[#D6A85F]/35 bg-[#D6A85F]/12 text-[#F8E0AD] hover:bg-[#D6A85F]/20">
-                  Explore Demo Dashboard
-                </Button>
-=======
->>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
               </form>
+
+              <button onClick={() => setMode(mode === "login" ? "register" : "login")} className="mt-5 w-full text-center text-sm text-cyan-200 transition hover:text-cyan-100">
+                {mode === "login" ? "Create Account" : "Already registered? Sign In"}
+              </button>
             </div>
 
             <div className="mt-6 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
@@ -255,21 +222,27 @@ export default function LoginPage() {
   );
 }
 
-function SocialButton({ provider }: { provider: Provider }) {
+function SocialButton({ provider, loading = false, onClick }: { provider: Provider; loading?: boolean; onClick?: () => void }) {
   const labels = {
     google: "Google",
     microsoft: "Microsoft",
     github: "GitHub"
   };
+  const enabled = Boolean(onClick);
 
   return (
     <button
       type="button"
-      disabled
-      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-sm font-medium text-slate-400 opacity-70"
+      disabled={!enabled || loading}
+      onClick={onClick}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition ${
+        enabled
+          ? "border-cyan-300/25 bg-slate-50 text-slate-950 hover:bg-cyan-50 disabled:cursor-wait disabled:opacity-75"
+          : "border-cyan-300/15 bg-slate-900/70 text-slate-400 opacity-70"
+      }`}
     >
-      <ProviderIcon provider={provider} />
-      <span>{labels[provider]} Coming Soon</span>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ProviderIcon provider={provider} />}
+      <span>{enabled ? `Continue with ${labels[provider]}` : `${labels[provider]} Coming Soon`}</span>
     </button>
   );
 }
@@ -293,42 +266,5 @@ function ProviderIcon({ provider }: { provider: Provider }) {
       <path fill="#FBBC05" d="M6.41 13.9a6 6 0 0 1 0-3.8V7.51H3.05a10 10 0 0 0 0 8.98l3.36-2.59Z" />
       <path fill="#EA4335" d="M12 5.98c1.47 0 2.8.51 3.84 1.5l2.87-2.87A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.95 5.51l3.36 2.59C7.2 7.74 9.4 5.98 12 5.98Z" />
     </svg>
-  );
-}
-
-function MaritimeVisual() {
-  return (
-    <div className="relative z-10 my-10 min-h-[18rem] w-full min-w-0 overflow-hidden rounded-lg border border-cyan-300/12 bg-[#082D56]/20 shadow-[0_28px_90px_rgba(0,0,0,.34)] backdrop-blur-xl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(48,213,255,.16),transparent_46%)]" />
-      <svg viewBox="0 0 860 360" className="absolute inset-0 h-full w-full" role="img" aria-label="Animated maritime intelligence map">
-        <path d="M78 125c37-30 82-35 126-22 47 15 87 9 120-16 36-27 78-24 116 7 35 28 75 33 121 14 54-23 101-7 140 39" fill="none" stroke="#30D5FF" strokeOpacity=".13" strokeWidth="22" />
-        <path d="M88 222c66-48 133-56 201-26 55 24 101 20 154-13 54-34 112-30 178 13 45 29 92 37 151 18" fill="none" stroke="#D6A85F" strokeOpacity=".18" strokeWidth="18" />
-        {[
-          "M92 254C238 168 356 147 506 203C614 244 704 222 798 132",
-          "M112 142C246 211 390 228 548 156C642 113 721 102 808 132",
-          "M138 286C272 236 388 247 520 286C632 319 724 302 812 242"
-        ].map((path) => (
-          <path key={path} d={path} fill="none" stroke="#30D5FF" strokeOpacity=".62" strokeWidth="2" strokeDasharray="8 10" className="ctrl-sea-route-pulse" />
-        ))}
-        {[
-          [192, 192, "#00E5A0"],
-          [392, 222, "#30D5FF"],
-          [548, 156, "#D6A85F"],
-          [682, 232, "#D6A85F"],
-          [742, 126, "#00E5A0"]
-        ].map(([cx, cy, color]) => (
-          <g key={`${cx}-${cy}`}>
-            <circle cx={cx} cy={cy} r="18" fill={String(color)} opacity=".12" />
-            <circle cx={cx} cy={cy} r="5" fill={String(color)} />
-          </g>
-        ))}
-      </svg>
-      <div className="absolute left-5 top-5 flex max-w-[calc(100%-2.5rem)] items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-950/60 px-3 py-2 text-xs text-cyan-100">
-        <Radar className="h-4 w-4 flex-none text-[#30D5FF]" /> <span className="min-w-0 truncate">Live vessel routes</span>
-      </div>
-      <div className="absolute bottom-5 right-5 flex max-w-[calc(100%-2.5rem)] items-center gap-2 rounded-md border border-[#D6A85F]/25 bg-slate-950/60 px-3 py-2 text-xs text-[#F8E0AD]">
-        <ShieldCheck className="h-4 w-4 flex-none" /> <span className="min-w-0 truncate">Chokepoints monitored</span>
-      </div>
-    </div>
   );
 }

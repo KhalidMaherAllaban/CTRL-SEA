@@ -1,0 +1,11 @@
+.next
+node_modules
+.env*
+npm-debug.log*
+coverage
+.turbo
+.vercel
+.netlify
+*.tsbuildinfo
+Dockerfile
+README.md

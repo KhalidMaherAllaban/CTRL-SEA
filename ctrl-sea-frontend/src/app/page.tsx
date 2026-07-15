@@ -71,9 +71,9 @@ export default function LandingPage() {
       </section>
       <section className="relative z-10 mx-auto grid max-w-7xl gap-6 px-6 py-16 md:grid-cols-3">
         {[
-          ["672", "Ports modeled"],
-          ["18", "Strategic chokepoints"],
-          ["$18.7T", "Annual trade monitored"]
+          ["2,069", "Warehouse ports"],
+          ["28", "Strategic chokepoints"],
+          ["14", "Warehouse datasets"]
         ].map(([value, label]) => (
           <Card key={label} className="text-center">
             <p className="text-4xl font-black text-white">{value}</p>

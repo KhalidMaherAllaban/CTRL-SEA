@@ -19,7 +19,7 @@ NEXT_PUBLIC_API_URL=/api
 BACKEND_API_URL=http://127.0.0.1:8000/api
 ```
 
-The maritime map uses OpenStreetMap tiles through React Leaflet and requires no map token.
+The maritime experience uses ArcGIS-powered components for the login globe and geospatial command experience. Configure `ARCGIS_API_KEY` only when your ArcGIS organization, basemap, or hosted services require one.
 
 Protected App Router pages are guarded by Next middleware and then authorized by FastAPI HTTP-only cookie sessions. Power BI reports are configured by the backend and rendered through the responsive `PowerBIContainer` and `PowerBIReportViewer` components.
 

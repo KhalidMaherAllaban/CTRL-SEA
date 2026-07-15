@@ -3,18 +3,22 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { LoadingState } from "@/components/ui/data-state";
 import { BarPanel, LinePanel, SankeyPanel } from "@/components/charts/analytics-charts";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { endpoints } from "@/lib/api";
 import type { SpilloverPayload } from "@/lib/types";
+import { Network } from "lucide-react";
+import { formatMetric } from "@/lib/utils";
 
 const EMPTY_PAYLOAD: SpilloverPayload = { port: "", country: "", industry: "", scenario: "present" };
 
 export default function SpilloverPage() {
   const [payload, setPayload] = useState<SpilloverPayload>(EMPTY_PAYLOAD);
-  const map = useQuery({ queryKey: ["spillover-map-options"], queryFn: endpoints.mapLayers });
+  const map = useQuery({ queryKey: ["spillover-map-options"], queryFn: () => endpoints.mapLayers() });
   const { data, error, isPending, mutate } = useMutation({ mutationFn: endpoints.spillover });
   const initialized = useRef(false);
   const portOptions = useMemo(() => {
@@ -44,6 +48,7 @@ export default function SpilloverPage() {
 
   return (
     <AppShell>
+      <div className="mb-6"><PageHeader eyebrow="Supply-chain intelligence" title="Spillover Scenario Simulator" description="Trace cascading port disruption across countries, industries, trade capacity, and downstream supply chains." icon={Network}/></div>
       <form onSubmit={submit} className="mb-5 grid gap-3 rounded-lg border border-cyan-300/15 bg-slate-950/50 p-4 md:grid-cols-5">
         <Select aria-label="Source port" value={payload.port} onChange={(event) => setPayload((current) => ({ ...current, port: event.target.value }))}>{portOptions.map((port) => <option key={port.port_code} value={port.port_code}>{port.port_name} ({port.port_code})</option>)}</Select>
         <Select aria-label="Source country" value={payload.country} onChange={(event) => setPayload((current) => ({ ...current, country: event.target.value }))}>{countryOptions.map((item) => <option key={item.iso3} value={item.iso3}>{item.country} ({item.iso3})</option>)}</Select>
@@ -51,7 +56,7 @@ export default function SpilloverPage() {
         <Select aria-label="Risk scenario" value={payload.scenario} onChange={(event) => setPayload((current) => ({ ...current, scenario: event.target.value }))}>{["present", "rcp26", "rcp45", "rcp85"].map((scenario) => <option key={scenario} value={scenario}>{scenario.toUpperCase()}</option>)}</Select>
         <Button type="submit" disabled={!payload.port || !payload.country || isPending}>{isPending ? "Running…" : "Run Simulation"}</Button>
       </form>
-      {error && <p className="mb-4 rounded-md border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-200">Unable to run the spillover analysis.</p>}
+      {isPending && !data && <LoadingState label="Propagating disruption scenario"/>}{error && <p className="mb-4 rounded-md border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-200">Unable to run the spillover analysis.</p>}
       {data && (
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-2">
@@ -66,7 +71,7 @@ export default function SpilloverPage() {
               <div className="mt-4 space-y-3">
                 {data.supply_chain_impact.slice(0, 6).map((item) => (
                   <div key={item.country} className="flex items-center justify-between rounded-md bg-slate-950/70 p-3 text-sm">
-                    <span>{item.country}</span><span className="text-cyan-200">{item.impact}</span>
+                    <span>{item.country}</span><span className="font-mono text-cyan-200">{formatMetric(item.impact)}</span>
                   </div>
                 ))}
               </div>

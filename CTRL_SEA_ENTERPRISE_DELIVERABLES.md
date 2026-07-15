@@ -43,7 +43,7 @@ npm run dev
 
 ## Deployment
 
-Set `NEXT_PUBLIC_API_URL` to the deployed FastAPI `/api` base URL. The maritime map uses OpenStreetMap tiles and requires no access token. Configure Power BI embedding with Azure AD service principal auth, workspace/report IDs, embed tokens, and row-level security roles.
+Set `NEXT_PUBLIC_API_URL` to the deployed FastAPI `/api` base URL. The maritime map and login globe use ArcGIS-powered geospatial components; configure `ARCGIS_API_KEY` only when your ArcGIS organization or services require it. Configure Power BI embedding with Azure AD service principal auth, workspace/report IDs, embed tokens, and row-level security roles.
 
 ## Roadmap
 

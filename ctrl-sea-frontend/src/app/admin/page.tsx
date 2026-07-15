@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { DatabaseZap, Play, Upload } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { endpoints } from "@/lib/api";
@@ -15,6 +16,7 @@ export default function AdminPage() {
 
   return (
     <AppShell>
+      <div className="mb-6"><PageHeader eyebrow="Platform operations" title="Administration & Data Operations" description="Monitor platform health, identity, warehouse ingestion, and external orchestration." icon={DatabaseZap}/></div>
       <div className="grid gap-4 xl:grid-cols-3">
         <Card>
           <DatabaseZap className="text-cyan-200" />

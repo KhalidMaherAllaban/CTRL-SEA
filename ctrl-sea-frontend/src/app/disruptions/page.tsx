@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardTitle } from "@/components/ui/card";
 import { endpoints } from "@/lib/api";
 import { formatUsd } from "@/lib/utils";
@@ -16,6 +18,7 @@ export default function DisruptionsPage() {
 
   return (
     <AppShell>
+      <div className="mb-6"><PageHeader eyebrow="Operational alerts" title="Global Disruption Monitor" description="Monitor climate, conflict, labor, congestion, and geopolitical events affecting maritime networks." icon={AlertTriangle}/></div>
       <div className="mb-5 flex flex-wrap gap-2">
         {categories.map((item) => (
           <button key={item} onClick={() => setCategory(item)} className={`rounded border px-3 py-1.5 text-sm transition ${category === item ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100" : "border-slate-700 text-slate-400 hover:text-white"}`}>{item}</button>

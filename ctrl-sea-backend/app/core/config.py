@@ -19,11 +19,17 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    frontend_url: str = "http://localhost:3000"
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+    google_oauth_redirect_uri: str = ""
     power_bi_reports_json: str = "[]"
     seed_admin_enabled: bool = False
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = Field(default="replace-with-a-local-password", min_length=8)
     seed_admin_name: str = "CTRL SEA Admin"
+    startup_max_attempts: int = Field(default=8, ge=1, le=60)
+    startup_retry_seconds: float = Field(default=2.0, ge=0.1, le=60)
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -42,6 +48,18 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_secure_settings(self) -> "Settings":
         self.power_bi_reports
+        missing = [
+            name
+            for name, value in {
+                "DATABASE_URL": self.database_url,
+                "JWT_SECRET": self.jwt_secret,
+                "CORS_ORIGINS": self.cors_origins,
+                "FRONTEND_URL": self.frontend_url,
+            }.items()
+            if not value.strip()
+        ]
+        if missing:
+            raise ValueError(f"Required environment variables are empty: {', '.join(missing)}")
         if self.environment.lower() in {"production", "prod"}:
             if self.jwt_secret == "change-this-before-production" or len(self.jwt_secret) < 32:
                 raise ValueError("JWT_SECRET must be changed in production and contain at least 32 characters")

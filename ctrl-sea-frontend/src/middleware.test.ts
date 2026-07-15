@@ -13,4 +13,19 @@ describe("auth middleware", () => {
     const request = new NextRequest("http://localhost:3000/map", { headers: { cookie: "ctrl_sea_refresh=refresh-token" } });
     expect(middleware(request).headers.get("x-middleware-next")).toBe("1");
   });
+
+  it("protects the analytics alias", () => {
+    const response = middleware(new NextRequest("http://localhost:3000/analytics"));
+    expect(response.headers.get("location")).toBe("http://localhost:3000/login?next=%2Fanalytics");
+  });
+
+  it("protects the AI copilot page", () => {
+    const response = middleware(new NextRequest("http://localhost:3000/ai"));
+    expect(response.headers.get("location")).toBe("http://localhost:3000/login?next=%2Fai");
+  });
+
+  it("allows report files to be served from public assets", () => {
+    const response = middleware(new NextRequest("http://localhost:3000/reports/ctrl-sea-dashboard.pbix"));
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
 });

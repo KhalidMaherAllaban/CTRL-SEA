@@ -2,14 +2,19 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { ErrorState, LoadingState } from "@/components/ui/data-state";
 import { AreaPanel, BarPanel } from "@/components/charts/analytics-charts";
 import { Card, CardTitle } from "@/components/ui/card";
 import { endpoints } from "@/lib/api";
+import { CloudLightning } from "lucide-react";
 
 export default function ClimateRiskPage() {
-  const { data } = useQuery({ queryKey: ["climate"], queryFn: endpoints.climate });
+  const { data, isLoading, error } = useQuery({ queryKey: ["climate"], queryFn: endpoints.climate });
   return (
     <AppShell>
+      <div className="mb-6"><PageHeader eyebrow="Climate intelligence" title="Maritime Climate Exposure" description="Compare physical asset damage and port downtime across climate scenarios." icon={CloudLightning}/></div>
+      {isLoading && <LoadingState label="Modeling climate exposure"/>}{error && <ErrorState/>}
       {data && (
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-2">

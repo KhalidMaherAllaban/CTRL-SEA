@@ -58,9 +58,19 @@ class TTLCache:
 cache = TTLCache()
 
 
-def _kpi(label: str, value: float, tone: str, suffix: str = "", prefix: str = "") -> dict:
-    return {"label": label, "value": round(value, 2), "suffix": suffix, "prefix": prefix, "change": 0, "weekly_change": 0,
-            "tone": tone, "tooltip": "Computed directly from the PortWatch data warehouse.", "sparkline": [round(value, 2)]}
+def _kpi(label: str, value: float, tone: str, suffix: str = "", prefix: str = "", change: float = 0,
+         year_change: float = 0, sparkline: list[float] | None = None) -> dict:
+    return {"label": label, "value": round(value, 2), "suffix": suffix, "prefix": prefix, "change": round(change, 2),
+            "weekly_change": round(year_change, 2), "tone": tone, "tooltip": "Computed directly from the PortWatch data warehouse.",
+            "sparkline": [round(point, 2) for point in (sparkline or [value])]}
+
+
+def _change(series: list[dict], offset: int = 1) -> float:
+    if len(series) <= offset:
+        return 0
+    current = float(series[-1].get("value") or 0)
+    previous = float(series[-1 - offset].get("value") or 0)
+    return 0 if previous == 0 else 100 * (current - previous) / abs(previous)
 
 
 def dashboard(db: Session) -> dict:
@@ -86,13 +96,13 @@ def dashboard(db: Session) -> dict:
           ROUND(100.0*SUM(CAST(n_total AS float))/NULLIF(SUM(CAST(capacity AS float)),0),2) value
           FROM portwatch_dw.fact_Daily_Chockpoints GROUP BY date ORDER BY date DESC""")[::-1]
         ports = port_rankings(db, 10)
-        countries = country_rankings(db, 10)
+        all_countries = country_rankings(db, 237)
+        countries = all_countries[:10]
         chokepoints = chokepoint_items(db)
-        risk_heatmap = rows(db, """SELECT TOP (50) c.country, COALESCE(c.official,c.country) region,
-          ROUND(AVG(CAST(r.days_downtime_at_port AS float)),2) risk
-          FROM portwatch_dw.Fact_Trade_Risk r JOIN portwatch_dw.dimension_Country c ON c.ISO3=r.from_ISO3
-          WHERE r.scenario='present'
-          GROUP BY c.country,c.official ORDER BY risk DESC""")
+        risk_heatmap = [
+            {"country": item["country"], "region": item["region"], "risk": item["risk_exposure"]}
+            for item in sorted(all_countries, key=lambda item: float(item["risk_exposure"] or 0), reverse=True)[:50]
+        ]
         mix = rows(db, """SELECT COALESCE(e.eventtype,'Unknown') name, COUNT_BIG(*) value
           FROM portwatch_dw.fact_Disruptions f LEFT JOIN portwatch_dw.dimension_Disruption_Event e ON e.eventid=f.eventid
           GROUP BY e.eventtype ORDER BY value DESC""")
@@ -101,8 +111,8 @@ def dashboard(db: Session) -> dict:
         top_route = one(db, """SELECT TOP 1 CONCAT(from_portname,' → ',to_portname) name FROM portwatch_dw.Fact_Spillover_Port ORDER BY daily_capacity_at_risk DESC""")
         label_kpi = lambda label, value, tone: {"label": label, "value": value or "N/A", "suffix": "", "prefix": "", "change": 0, "weekly_change": 0, "tone": tone, "tooltip": "Ranked from warehouse aggregates.", "sparkline": []}
         kpis = [_kpi("Total Countries", totals["countries"], "cyan"), _kpi("Total Ports", totals["ports"], "blue"),
-                _kpi("Active Ports", totals["active_ports"], "emerald"), _kpi("Total Port Calls", totals["portcalls"], "gold"),
-                _kpi("Total Trade Volume", totals["trade_volume"], "cyan"), _kpi("Total Disruptions", totals["disruptions"], "rose"),
+                _kpi("Active Ports", totals["active_ports"], "emerald"), _kpi("Total Port Calls", totals["portcalls"], "gold", change=_change(activity), year_change=_change(activity, 12), sparkline=[float(item["value"] or 0) for item in activity]),
+                _kpi("Total Trade Volume", totals["trade_volume"], "cyan", change=_change(trend), year_change=_change(trend, 12), sparkline=[float(item["value"] or 0) for item in trend]), _kpi("Total Disruptions", totals["disruptions"], "rose"),
                 _kpi("Total Chokepoints", totals["chokepoints"], "amber"), _kpi("Avg Climate Downtime", totals["climate_risk"] or 0, "violet", " days"),
                 _kpi("Avg Trade Downtime", totals["trade_risk"] or 0, "cyan", " days"),
                 label_kpi("Top Port", ports[0]["port_name"] if ports else None, "blue"),

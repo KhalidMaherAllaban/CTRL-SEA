@@ -3,12 +3,8 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-<<<<<<< HEAD
-import { BarChart3, CloudLightning, Command, Database, FileText, Globe2, LayoutDashboard, Lock, Map, RadioTower, Ship, ShieldAlert, TrendingUp } from "lucide-react";
-=======
-import { BarChart3, CloudLightning, Command, Database, FileText, Globe2, LayoutDashboard, Lock, Map, RadioTower, Search, Ship, ShieldAlert, TrendingUp, Users } from "lucide-react";
->>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
+import { useEffect, useState } from "react";
+import { Bot, Database, ExternalLink, FileText, Globe2, LayoutDashboard, Lock, Map, Menu, RadioTower, Search, Ship, ShieldAlert, Users, X } from "lucide-react";
 import { CtrlSeaLogo } from "@/components/branding/ctrl-sea-logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -19,43 +15,47 @@ const nav: Array<{ href: Route; label: string; icon: typeof LayoutDashboard }> =
   { href: "/map", label: "Maritime Map", icon: Map },
   { href: "/ports", label: "Ports", icon: Ship },
   { href: "/countries", label: "Countries", icon: Globe2 },
-  { href: "/trade-flows", label: "Trade Flows", icon: TrendingUp },
   { href: "/chokepoints", label: "Chokepoints", icon: RadioTower },
   { href: "/risk-center", label: "Risk Center", icon: ShieldAlert },
-  { href: "/climate-risk", label: "Climate Risk", icon: CloudLightning },
-  { href: "/trade-risk", label: "Trade Risk", icon: BarChart3 },
   { href: "/spillover", label: "Spillover", icon: Globe2 },
   { href: "/disruptions", label: "Disruptions", icon: ShieldAlert },
   { href: "/reports", label: "Power BI", icon: FileText },
+  { href: "/ai", label: "Ask AI", icon: Bot },
   { href: "/admin", label: "Admin", icon: Database }
 ];
+
+const pageTitles: Record<string, string> = {
+  "/dashboard": "CTRL SEA | Overview",
+  "/map": "CTRL SEA | Maritime Map",
+  "/ports": "CTRL SEA | Port Intelligence",
+  "/countries": "CTRL SEA | Country Intelligence",
+  "/risk-center": "CTRL SEA | Maritime Risk Center",
+  "/chokepoints": "CTRL SEA | Chokepoint Intelligence",
+  "/climate-risk": "CTRL SEA | Climate Risk",
+  "/trade-risk": "CTRL SEA | Trade Risk",
+  "/spillover": "CTRL SEA | Spillover",
+  "/disruptions": "CTRL SEA | Disruptions",
+  "/reports": "CTRL SEA | Analytics Center",
+  "/ai": "CTRL SEA | Ask AI",
+  "/admin": "CTRL SEA | Administration"
+};
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isReady, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (isReady && !user) router.replace("/login");
-  }, [isReady, router, user]);
+    if (isReady && !user) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+  }, [isReady, pathname, router, user]);
 
   useEffect(() => {
     if (isReady && user && pathname.startsWith("/admin") && user.role !== "admin") router.replace("/dashboard");
   }, [isReady, pathname, router, user]);
 
   useEffect(() => {
-    const titles: Record<string, string> = {
-      "/dashboard": "CTRL SEA | Overview",
-      "/map": "CTRL SEA | Maritime Map",
-      "/ports": "CTRL SEA | Port Intelligence",
-      "/countries": "CTRL SEA | Country Intelligence",
-      "/trade-flows": "CTRL SEA | Global Trade Flows",
-      "/risk-center": "CTRL SEA | Maritime Risk Center",
-      "/chokepoints": "CTRL SEA | Chokepoint Intelligence",
-      "/reports": "CTRL SEA | Analytics Center",
-      "/admin": "CTRL SEA | Administration"
-    };
-    document.title = titles[pathname] ?? "CTRL SEA | Maritime Intelligence Platform";
+    document.title = pageTitles[pathname] ?? "CTRL SEA | Maritime Intelligence Platform";
   }, [pathname]);
 
   if (!isReady || !user) {
@@ -69,6 +69,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const visibleNav = nav.filter((item) => item.href !== "/admin" || user.role === "admin");
+
   return (
     <div className="min-h-screen bg-radial-ocean">
       <div className="fixed inset-0 maritime-grid opacity-40" />
@@ -77,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <CtrlSeaLogo variant="full" className="flex-col gap-3 text-center" />
         </Link>
         <nav className="mt-8 space-y-1">
-          {nav.filter((item) => item.href !== "/admin" || user.role === "admin").map((item) => {
+          {visibleNav.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
@@ -89,10 +91,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </aside>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-lg lg:hidden" onClick={() => setMobileOpen(false)}>
+          <nav onClick={(event) => event.stopPropagation()} className="h-full w-[min(88vw,340px)] overflow-y-auto border-r border-cyan-300/15 bg-[#03152D] p-5">
+            <div className="flex items-center justify-between">
+              <CtrlSeaLogo variant="responsive" />
+              <button className="table-action" onClick={() => setMobileOpen(false)} aria-label="Close navigation">
+                <X size={17} />
+              </button>
+            </div>
+            <div className="mt-8 space-y-1">
+              {visibleNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link onClick={() => setMobileOpen(false)} key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-400", pathname === item.href && "bg-cyan-300/15 text-cyan-100")}>
+                    <Icon size={18} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </div>
+      )}
+
       <main className="relative z-10 lg:pl-72">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-cyan-300/10 bg-slate-950/60 px-5 backdrop-blur-xl">
           <div className="flex min-w-0 items-center gap-4">
-            <Link href="/dashboard" className="lg:hidden">
+            <button className="table-action lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
+              <Menu size={18} />
+            </button>
+            <Link href="/dashboard" className="hidden sm:block lg:hidden">
               <CtrlSeaLogo variant="responsive" />
             </Link>
             <div className="hidden min-w-0 sm:block">
@@ -101,49 +131,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-<<<<<<< HEAD
             <button
               type="button"
-              title="DataSource"
+              title="Open PortWatch dataset source"
               onClick={() => window.open("https://portwatch.imf.org/search?collection=dataset", "_blank", "noopener,noreferrer")}
               className="hidden h-9 items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-300 transition hover:border-cyan-300/35 hover:text-cyan-100 md:flex"
             >
-              <Command size={14} /> DataSource
+              <ExternalLink size={14} /> DataSource
             </button>
-            
-=======
-            <button type="button" disabled title="Command center is coming soon" className="hidden h-9 cursor-not-allowed items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-500 md:flex">
-              <Command size={14} /> Command Soon
-            </button>
+            <div className="hidden h-9 items-center gap-2 rounded-md border border-emerald-300/15 bg-emerald-400/5 px-3 text-xs text-emerald-200 xl:flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" /> Warehouse live
+            </div>
             <div className="hidden h-9 items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 text-xs text-slate-400 xl:flex">
               <Search size={14} /> Search ports, vessels, countries
             </div>
             <div className="hidden items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-900/70 px-3 py-2 text-xs text-slate-300 md:flex">
               <Users size={14} /> {user.full_name}
             </div>
->>>>>>> da5a23e (feat: productionize CTRL SEA warehouse platform)
             <Button onClick={logout} className="h-9 px-3">
               <Lock size={15} /> Logout
             </Button>
           </div>
         </header>
-        <div className="p-5 lg:p-8">{children}</div>
-        {/* Floating Ask-Ai button (bottom-right) */}
+        <div className="mx-auto max-w-[1800px] p-4 sm:p-5 lg:p-8">{children}</div>
         <button
           type="button"
-          title="Ask-Ai"
-          onClick={() => (window.location.href = "http://127.0.0.1:5500/CTRL-SEA-AI/index.html")}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-gradient-to-br from-fuchsia-600 to-pink-500 px-4 py-3 text-sm font-medium text-white shadow-xl transition-transform hover:scale-105 focus:outline-none"
-          aria-label="Ask-Ai"
+          title="Ask AI"
+          onClick={() => router.push("/ai")}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full border border-fuchsia-300/25 bg-gradient-to-br from-fuchsia-600 to-pink-500 px-4 py-3 text-sm font-medium text-white shadow-xl shadow-fuchsia-950/30 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-fuchsia-200"
+          aria-label="Ask AI"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <rect x="3" y="7" width="18" height="11" rx="2" />
-            <path d="M8 7V5a4 4 0 0 1 8 0v2" />
-            <circle cx="9" cy="12" r="1" />
-            <circle cx="15" cy="12" r="1" />
-            <path d="M9 17h6" />
-          </svg>
-          <span className="hidden sm:inline">Ask-Ai</span>
+          <Bot size={16} />
+          <span className="hidden sm:inline">Ask AI</span>
         </button>
       </main>
     </div>
