@@ -4,17 +4,101 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_current_user
+from app.api.routes import chokepoints, climate, countries, dashboard, insights, map_layers, ports, risk_center, spillover, trade
 from app.main import app
-from app.database.session import SessionLocal
+from app.database.session import SessionLocal, engine
 from app.models.user import User
 
 
 client = TestClient(app)
 
+PORT = {
+    "port_key": 1,
+    "port_code": "EGPSD",
+    "port_name": "Port Said",
+    "country_key": 1,
+    "country": "Egypt",
+    "latitude": 31.2653,
+    "longitude": 32.3019,
+    "capacity_teu": 1000000,
+    "port_type": "Container",
+    "vessel_count": 120,
+    "trade_value_usd": 250000000.0,
+    "risk_score": 42.0,
+}
+
+COUNTRY = {
+    "country_key": 1,
+    "iso3": "EGY",
+    "country": "Egypt",
+    "country_name": "Egypt",
+    "region": "Middle East & North Africa",
+    "imports_usd": 120000000.0,
+    "exports_usd": 90000000.0,
+    "dependency": 4,
+    "risk_exposure": 35.0,
+}
+
 
 @pytest.fixture
-def warehouse_client():
+def sqlite_schema():
+    if engine.url.get_backend_name() == "sqlite":
+        User.__table__.create(bind=engine, checkfirst=True)
+        yield
+        User.__table__.drop(bind=engine, checkfirst=True)
+    else:
+        yield
+
+
+@pytest.fixture(autouse=True)
+def reset_client_cookies(sqlite_schema):
+    client.cookies.clear()
+    yield
+    client.cookies.clear()
+
+
+@pytest.fixture
+def warehouse_client(monkeypatch):
     app.dependency_overrides[get_current_user] = lambda: object()
+    monkeypatch.setattr(dashboard, "dashboard", lambda db: {
+        "kpis": [{"label": "Ports", "value": 1, "change": 0, "weekly_change": 0, "tooltip": "Ports", "sparkline": [1, 1]}],
+        "trade_trend": [{"month": "2026-01", "value": 100}],
+        "vessel_activity_trend": [{"month": "2026-01", "value": 12}],
+        "congestion_trend": [{"month": "2026-01", "value": 20}],
+        "risk_trend": [{"month": "2026-01", "value": 30}],
+        "risk_heatmap": [{"country": "Egypt", "region": "Middle East & North Africa", "risk": 35}],
+        "chokepoint_status": [{"chokepoint_code": "SUEZ", "chokepoint_name": "Suez Canal", "vessel_transits": 200, "risk_score": 50}],
+        "trade_distribution": [{"name": "Container", "value": 100}],
+        "port_rankings": [PORT],
+        "country_rankings": [COUNTRY],
+        "disruption_mix": [{"name": "Weather", "value": 2}],
+    })
+    monkeypatch.setattr(map_layers, "map_layers", lambda db, route_limit=300: {
+        "ports": [PORT],
+        "countries": [COUNTRY],
+        "chokepoints": [{"chokepoint_code": "SUEZ", "chokepoint_name": "Suez Canal", "latitude": 30.0, "longitude": 32.0, "region": "Egypt", "vessel_transits": 200, "risk_score": 50}],
+        "trade_flows": [{"route_id": "EGPSD-NLRTM", "origin": "Port Said", "origin_country": "Egypt", "origin_lat": 31.2653, "origin_lon": 32.3019, "destination": "Rotterdam", "destination_country": "Netherlands", "destination_lat": 51.9244, "destination_lon": 4.4777, "value": 1000000, "risk": 20}],
+        "disruptions": [],
+    })
+    monkeypatch.setattr(ports.warehouse, "list_ports", lambda db, search=None, country=None, page=1, size=20: ([PORT], 1))
+    monkeypatch.setattr(ports.warehouse, "port_analytics", lambda db: {"throughput": [{"name": "Port Said", "value": 250000000}], "trend": []})
+    monkeypatch.setattr(countries.warehouse, "country_rankings", lambda db, limit=237: [COUNTRY])
+    monkeypatch.setattr(countries.warehouse, "country_analytics", lambda db: {"countries": [COUNTRY], "trend": [], "dependency": [], "partners": [], "risk_exposure": [], "trade_balance": []})
+    monkeypatch.setattr(chokepoints.warehouse, "chokepoint_analytics", lambda db: {"items": [{"chokepoint_code": "SUEZ", "chokepoint_name": "Suez Canal", "risk_score": 50}], "transits": [], "risk": [], "trade_impact": [], "congestion": [], "history": []})
+    monkeypatch.setattr(climate, "climate", lambda db: {"scenario_comparison": [], "hazard_heatmap": [], "risk_by_country": [], "trend": []})
+    monkeypatch.setattr(trade, "trade_risk", lambda db: {"value_at_risk": [], "downtime": [], "industry_impact": [], "trade_flows": []})
+    monkeypatch.setattr(risk_center, "risk_center", lambda db: {"climate": {"risk_by_country": []}, "trade": {"value_at_risk": []}, "disruptions": [], "top_risk_locations": []})
+    monkeypatch.setattr(insights, "insights", lambda db: {"narratives": ["Warehouse stable"], "top_trade_corridors": [], "fastest_growing_ports": [], "highest_risk_countries": [], "highest_risk_routes": [], "most_critical_chokepoints": [], "largest_spillover_effects": [], "most_disrupted_regions": []})
+    monkeypatch.setattr(spillover, "spillover", lambda db, port, country, industry, scenario: {
+        "affected_countries": [{"country": "Egypt", "impact": 1}],
+        "trade_losses": [],
+        "capacity_risk": [],
+        "supply_chain_impact": [],
+        "transit_delays": [],
+        "sankey": {"nodes": [], "links": []},
+        "network": {"nodes": [], "edges": []},
+        "propagation": [],
+    })
     try:
         yield client
     finally:

@@ -6,12 +6,31 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
+    name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.12"]
     defaults:
       run:
         working-directory: ctrl-sea-backend
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: sqlite:///./test.db
+      JWT_SECRET: ci-only-placeholder-secret-with-more-than-32-characters
+      CORS_ORIGINS: http://localhost:3000
+      FRONTEND_URL: http://localhost:3000
+      POWER_BI_REPORTS_JSON: "[]"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,20 +38,32 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
+          cache-dependency-path: ctrl-sea-backend/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Show environment
+        run: |
+          python --version
+          pip --version
+
+      - name: Critical Python lint
+        run: ruff check app scripts --select E9,F63,F7,F82
 
       - name: Syntax check
         run: python -m compileall app scripts
 
       - name: Tests
-        run: python -m pytest -q
-        env:
-          ENVIRONMENT: test
-          DATABASE_URL: sqlite:///./test.db
-          JWT_SECRET: ci-only-placeholder-secret-with-more-than-32-characters
-          CORS_ORIGINS: http://localhost:3000
-          FRONTEND_URL: http://localhost:3000
+        run: |
+          rm -f test.db
+          python -m pytest -q
+
+      - name: Backend Docker build
+        working-directory: ${{ github.workspace }}
+        run: docker build -t ctrl-sea-backend:ci ./ctrl-sea-backend

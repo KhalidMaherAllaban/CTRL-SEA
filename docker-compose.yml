@@ -3,9 +3,9 @@ services:
     build:
       context: ./ctrl-sea-backend
     env_file:
-      - ./ctrl-sea-backend/.env
+      - ./ctrl-sea-backend/.env.example
     environment:
-      DATABASE_URL: ${DOCKER_DATABASE_URL:-}
+      DATABASE_URL: "${DOCKER_DATABASE_URL:-mssql+pyodbc://@host.docker.internal:1433/ITI_Graduation_PortWatch?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes}"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     extra_hosts:
